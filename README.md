@@ -9,6 +9,16 @@ Pengguna aplikasi ini adalah panitia pelaksana acara (*Event Organizer* tingkat 
 *   **Koordinator Divisi (misal: Media Kreatif):** Bertugas memberikan *approval* desain/dokumen, menugaskan PIC, dan mengunci revisi.
 *   **Staf / Anggota Divisi:** Bertugas mengerjakan tugas yang didelegasikan, mengunggah draf/file, dan melaporkan *progress*.
 
+## 🛠️ Tech Stack
+
+**Backend & API:**
+*   [Laravel](https://laravel.com/) (PHP) - *Core framework* & RESTful API
+*   MySQL / PostgreSQL - Relational Database Management
+
+**Frontend (Mobile & Web Admin):**
+*   *Mobile UI Framework* (Flutter / React Native)
+*   Blade Templating (Untuk Web Admin Panel)
+
 ### 3. Manfaat Aplikasi
 *   **Single Source of Truth:** Menyediakan satu *platform* terpusat untuk koordinasi tugas tanpa perlu mencari *file* yang tertumpuk di aplikasi *chat*.
 *   **Akuntabilitas Transparan:** Memperjelas siapa yang bertanggung jawab atas suatu tugas (sistem PIC).
