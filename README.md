@@ -19,7 +19,7 @@ Pengguna aplikasi ini adalah panitia pelaksana acara (*Event Organizer* tingkat 
 1.  **Sistem Autentikasi & RBAC:** *Login* dengan pembagian hak akses (Staf vs Koordinator).
 2.  **Manajemen Tugas (CRUD Dasar):** Pembuatan tugas, penugasan ke PIC, dan pembaruan *progress* (menampilkan antarmuka daftar tugas / *Index*).
 3.  **Approval State Machine:** Logika *backend* (*Draft* ➔ *In Review* ➔ *Approved*). Mengunci *file* agar tidak bisa diedit setelah status diubah menjadi *Approved* oleh Koordinator.
-4.  **Creative Asset Versioning:** Fitur unggah *file* tugas yang memungkinkan penyimpanan riwayat revisi (versi 1, versi 2, dst) tanpa menimpa *file* lama.
+4.  **Creative Digital Asset Versioning:** Fitur unggah *file* tugas yang memungkinkan penyimpanan riwayat revisi (versi 1, versi 2, dst) tanpa menimpa *file* lama.
 5.  **Soft-Delete Mechanism:** Memastikan data yang dihapus (seperti tugas yang dibatalkan) di antarmuka tidak benar-benar hilang dari *database* (kolom `is_active`).
 
 ### 5. Fitur yang Tidak Dikerjakan (Out of Scope)
