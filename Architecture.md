@@ -32,7 +32,7 @@ graph TD
 
 ## 2. Stack Teknologi
 
-- **Frontend (Mobile App):** [Isi dengan teknologi mobile yang Anda gunakan, misal: Flutter / Java / .NET MAUI]
+- **Frontend (Mobile App):** Flutter
 - **Backend API:** Laravel (PHP)
 - **Database:** MySQL
 - **Authentication:** Laravel Sanctum (Token-based)
