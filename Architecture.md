@@ -86,6 +86,7 @@ Sistem ini memiliki siklus hidup aset/tugas (*Workflow State Machine*) yang memv
 
 Sistem *backend* mengikuti struktur hierarki standar Laravel dengan penyesuaian khusus untuk mode API:
 
+```text
 kruhub-app/                          <-- Root Workspace
 │
 ├── kruhub-backend/                  <-- Laravel REST API Project
@@ -167,3 +168,4 @@ kruhub-app/                          <-- Root Workspace
     ├── pubspec.lock
     ├── pubspec.yaml
     └── README.md
+```
