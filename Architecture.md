@@ -86,19 +86,64 @@ Sistem ini memiliki siklus hidup aset/tugas (*Workflow State Machine*) yang memv
 
 Sistem *backend* mengikuti struktur hierarki standar Laravel dengan penyesuaian khusus untuk mode API:
 
-```text
-kruhub-backend/
-├── app/
-│   ├── Http/
-│   │   ├── Controllers/Api/   # Controller khusus logika API (mereturn JSON response)
-│   │   ├── Requests/          # Validasi Input (FormRequest)
-│   │   └── Middleware/        # Filter request (RBAC, Sanctum auth)
-│   └── Models/                # Model Eloquent dengan trait SoftDeletes
-├── database/
-│   ├── migrations/            # Skema dan relasi tabel (termasuk foreign keys)
-│   └── seeders/               # Data inisial (Roles, Admin default, status dummy)
-├── routes/
-│   └── api.php                # Registrasi seluruh rute endpoint API
-└── storage/
-    └── app/public/            # Direktori penyimpanan media/aset yang diunggah pengguna
-```
+graph LR
+    %% Root Workspace
+    Root[📁 kruhub-app] --> Backend[📁 kruhub-backend]
+    Root --> Frontend[📁 kruhub-frontend]
+
+    %% -------------------------------------
+    %% kruhub-backend (Laravel)
+    %% -------------------------------------
+    Backend --> B_app[📁 app]
+    Backend --> B_boot[📁 bootstrap]
+    Backend --> B_conf[📁 config]
+    Backend --> B_db[📁 database]
+    Backend --> B_pub[📁 public]
+    Backend --> B_res[📁 resources]
+    Backend --> B_routes[📁 routes]
+    Backend --> B_stor[📁 storage]
+    Backend --> B_tests[📁 tests]
+    Backend --> B_vend[📁 vendor]
+    
+    Backend --> B_f1[📄 .editorconfig]
+    Backend --> B_f2[📄 .env]
+    Backend --> B_f3[📄 .env.example]
+    Backend --> B_f4[📄 .gitattributes]
+    Backend --> B_f5[📄 .gitignore]
+    Backend --> B_f6[📄 artisan]
+    Backend --> B_f7[📄 composer.json]
+    Backend --> B_f8[📄 composer.lock]
+    Backend --> B_f9[📄 package.json]
+    Backend --> B_f10[📄 phpunit.xml]
+    Backend --> B_f11[📄 README.md]
+    Backend --> B_f12[📄 vite.config.js]
+
+    %% -------------------------------------
+    %% kruhub-frontend (Flutter)
+    %% -------------------------------------
+    Frontend --> F_dtool[📁 .dart_tool]
+    Frontend --> F_idea[📁 .idea]
+    Frontend --> F_android[📁 android]
+    Frontend --> F_build[📁 build]
+    Frontend --> F_ios[📁 ios]
+    Frontend --> F_lib[📁 lib]
+    Frontend --> F_linux[📁 linux]
+    Frontend --> F_macos[📁 macos]
+    Frontend --> F_test[📁 test]
+    Frontend --> F_web[📁 web]
+    Frontend --> F_win[📁 windows]
+
+    Frontend --> F_f1[📄 .gitignore]
+    Frontend --> F_f2[📄 .metadata]
+    Frontend --> F_f3[📄 analysis_options.yaml]
+    Frontend --> F_f4[📄 kruhub_mobile.iml]
+    Frontend --> F_f5[📄 pubspec.lock]
+    Frontend --> F_f6[📄 pubspec.yaml]
+    Frontend --> F_f7[📄 README.md]
+
+    %% Styling agar terlihat lebih rapi
+    classDef folder fill:#f4cf73,stroke:#e5b443,stroke-width:2px,color:#000;
+    classDef file fill:#eef2f5,stroke:#c4d1de,stroke-width:1px,color:#333;
+    
+    class Root,Backend,Frontend,B_app,B_boot,B_conf,B_db,B_pub,B_res,B_routes,B_stor,B_tests,B_vend,F_dtool,F_idea,F_android,F_build,F_ios,F_lib,F_linux,F_macos,F_test,F_web,F_win folder;
+    class B_f1,B_f2,B_f3,B_f4,B_f5,B_f6,B_f7,B_f8,B_f9,B_f10,B_f11,B_f12,F_f1,F_f2,F_f3,F_f4,F_f5,F_f6,F_f7 file;
