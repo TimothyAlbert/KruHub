@@ -2,24 +2,256 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // 1. Matikan Foreign Key Check untuk mempermudah Reset
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('assets')->truncate();
+        DB::table('tasks')->truncate();
+        DB::table('users')->truncate();
+        DB::table('teams')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // ----------------------------------------------------
+        // 2. SEED TEAMS / PROJECTS
+        // ----------------------------------------------------
+        $team1Id = DB::table('teams')->insertGetId([
+            'name' => 'Skyline Feature Film',
+            'team_code' => 'KRU-U-8F3K2',
+            'description' => 'Proyek pembuatan film layar lebar fiksi ilmiah Skyline.',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $team2Id = DB::table('teams')->insertGetId([
+            'name' => 'Nusantara Documentary',
+            'team_code' => 'KRU-A-9X2M1',
+            'description' => 'Eksplorasi dokumenter kebudayaan dan keanekaragaman Nusantara.',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        // ----------------------------------------------------
+        // 3. SEED USERS
+        // ----------------------------------------------------
+        $passwordHash = Hash::make('password123');
+
+        // Main User (Untuk Login Flutter)
+        $adminUserId = DB::table('users')->insertGetId([
+            'team_id' => $team1Id,
+            'name' => 'Timothy',
+            'email' => 'admin@kruhub.com',
+            'password' => $passwordHash,
+            'role' => 'ketua_pelaksana',
+            'division' => 'Sutradara / Directing',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        // Anggota Tim Project 1 (Skyline Feature Film)
+        $userCameraPIC = DB::table('users')->insertGetId([
+            'team_id' => $team1Id,
+            'name' => 'Budi Santoso',
+            'email' => 'budi.camera@kruhub.com',
+            'password' => $passwordHash,
+            'role' => 'pic_divisi',
+            'division' => 'Kamera & Sinematografi',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $userSoundPIC = DB::table('users')->insertGetId([
+            'team_id' => $team1Id,
+            'name' => 'Siti Rahma',
+            'email' => 'siti.sound@kruhub.com',
+            'password' => $passwordHash,
+            'role' => 'pic_divisi',
+            'division' => 'Audio & Tata Suara',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $userStaff1 = DB::table('users')->insertGetId([
+            'team_id' => $team1Id,
+            'name' => 'Andi Wijaya',
+            'email' => 'andi.staff@kruhub.com',
+            'password' => $passwordHash,
+            'role' => 'staf',
+            'division' => 'Lighting',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        // Anggota Tim Project 2 (Nusantara Documentary)
+        $userDocLead = DB::table('users')->insertGetId([
+            'team_id' => $team2Id,
+            'name' => 'Maya Putri',
+            'email' => 'maya.doc@kruhub.com',
+            'password' => $passwordHash,
+            'role' => 'ketua_pelaksana',
+            'division' => 'Produser Exec',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        // ----------------------------------------------------
+        // 4. SEED TASKS (PROJECT 1: Skyline Feature Film)
+        // ----------------------------------------------------
+        DB::table('tasks')->insert([
+            [
+                'team_id' => $team1Id,
+                'title' => 'Finalisasi Script & Storyboard Scene 1-10',
+                'division' => 'Directing',
+                'status' => 'Completed',
+                'deadline_date' => Carbon::now()->subDays(2)->format('Y-m-d'),
+                'created_by' => $adminUserId,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'title' => 'Sewa Lensa Anamorphic & Rencana Pencahayaan',
+                'division' => 'Kamera & Sinematografi',
+                'status' => 'In Progress',
+                'deadline_date' => Carbon::now()->addDays(3)->format('Y-m-d'),
+                'created_by' => $adminUserId,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'title' => 'Review Audio Foley & Sound Effect Teaser',
+                'division' => 'Audio & Tata Suara',
+                'status' => 'Review',
+                'deadline_date' => Carbon::now()->addDays(5)->format('Y-m-d'),
+                'created_by' => $userSoundPIC,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'title' => 'Persetujuan Izin Lokasi Hutan Pinus',
+                'division' => 'Produksi',
+                'status' => 'Blocked',
+                'deadline_date' => Carbon::now()->addDays(1)->format('Y-m-d'),
+                'created_by' => $adminUserId,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'title' => 'Penyusunan Wardrobe Karakter Utama',
+                'division' => 'Art & Wardrobe',
+                'status' => 'In Progress',
+                'deadline_date' => Carbon::now()->addDays(7)->format('Y-m-d'),
+                'created_by' => $adminUserId,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+        ]);
+
+        // SEED TASKS (PROJECT 2: Nusantara Documentary)
+        DB::table('tasks')->insert([
+            [
+                'team_id' => $team2Id,
+                'title' => 'Riset Narasumber Budayawan Toraja',
+                'division' => 'Riset',
+                'status' => 'In Progress',
+                'deadline_date' => Carbon::now()->addDays(4)->format('Y-m-d'),
+                'created_by' => $userDocLead,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team2Id,
+                'title' => 'Pengurusan Tiket & Akomodasi Tim Lapangan',
+                'division' => 'Logistik',
+                'status' => 'Completed',
+                'deadline_date' => Carbon::now()->subDays(1)->format('Y-m-d'),
+                'created_by' => $userDocLead,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+        ]);
+
+        // ----------------------------------------------------
+        // 5. SEED ASSETS (PROJECT 1: Skyline Feature Film)
+        // ----------------------------------------------------
+        DB::table('assets')->insert([
+            [
+                'team_id' => $team1Id,
+                'name' => 'RED V-Raptor 8K VV Camera Body',
+                'category' => 'Kamera',
+                'location' => 'Studio Utama (Rak A1)',
+                'status' => 'In Use',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'name' => 'ARRI SkyPanel S60-C LED Light',
+                'category' => 'Lighting',
+                'location' => 'Gudang Alat Lighting',
+                'status' => 'Available',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'name' => 'Sennheiser MKH 416 Shotgun Microphone',
+                'category' => 'Audio',
+                'location' => 'Audio Kit Case #2',
+                'status' => 'Available',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'name' => 'DJI Ronin 2 Professional Gimbal',
+                'category' => 'Grip & Stabilizer',
+                'location' => 'Studio Utama (Rak C3)',
+                'status' => 'Maintenance',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team1Id,
+                'name' => 'Cooke Anamorphic /i Full Frame Lens Set',
+                'category' => 'Lensa',
+                'location' => 'Vault Kamera',
+                'status' => 'In Use',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+        ]);
+
+        // SEED ASSETS (PROJECT 2: Nusantara Documentary)
+        DB::table('assets')->insert([
+            [
+                'team_id' => $team2Id,
+                'name' => 'Sony FX6 Cinema Line Camera',
+                'category' => 'Kamera',
+                'location' => 'Pekalongan Unit',
+                'status' => 'In Use',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'team_id' => $team2Id,
+                'name' => 'DJI Mavic 3 Cine Drone',
+                'category' => 'Drone',
+                'location' => 'Koper Drone A',
+                'status' => 'Available',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
         ]);
     }
 }
