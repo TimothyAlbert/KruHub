@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 class TeamController extends Controller
 {
-    // 1. BUAT TIM BARU & OTOMATIS GABUNGKAN PEMBUAT
+    // 1. BUAT TIM BARU & OTOMATIS GABUNGKAN PEMBUAT SEBAGAI OWNER
     public function store(Request $request)
     {
         try {
@@ -24,13 +24,13 @@ class TeamController extends Controller
                 'description' => $request->description,
             ]);
 
-            // Otomatis daftarkan pembuat ke pivot table
+            // Selalu tetapkan pembuat tim dengan role 'owner' di pivot table
             $team->members()->attach($request->user()->id, [
                 'role' => 'owner'
             ]);
 
             return response()->json([
-                'message' => 'Project berhasil dibuat dan Anda otomatis bergabung!',
+                'message' => 'Project berhasil dibuat dan Anda otomatis menjadi Owner!',
                 'data' => $team->load('members')
             ], 201);
 
@@ -43,7 +43,7 @@ class TeamController extends Controller
         }
     }
 
-    // 2. AMBIL TIM YANG DIIKUTI USER
+    // 2. AMBIL DAFTAR TIM DIIKUTI USER
     public function userTeams(Request $request)
     {
         try {
@@ -55,7 +55,7 @@ class TeamController extends Controller
         }
     }
 
-    // 3. GABUNG TIM LEWAT KODE
+    // 3. GABUNG TIM LEWAT KODE SEBAGAI MEMBER
     public function join(Request $request)
     {
         try {
@@ -73,6 +73,7 @@ class TeamController extends Controller
                 return response()->json(['message' => 'Anda sudah bergabung di tim ini'], 400);
             }
 
+            // Pendaftar baru via kode tim ditetapkan sebagai 'member'
             $team->members()->attach($request->user()->id, [
                 'role' => 'member'
             ]);
@@ -91,7 +92,7 @@ class TeamController extends Controller
         }
     }
 
-    // 4. DAFTAR ANGGOTA TIM AKTIF
+    // 4. DAFTAR ANGGOTA TIM AKTIF BERDASARKAN X-PROJECT-ID
     public function members(Request $request)
     {
         $teamId = $request->header('X-Project-ID');
@@ -106,6 +107,7 @@ class TeamController extends Controller
             return response()->json([]);
         }
 
+        // Mengembalikan anggota beserta data pivot-nya (pivot.role)
         return response()->json($team->members);
     }
 }

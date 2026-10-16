@@ -15,6 +15,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'division',
     ];
 
     protected $hidden = [
@@ -22,7 +24,7 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    // Relasi Many-to-Many ke Team via pivot team_user
+    // Relasi Many-to-Many ke Team via pivot team_user dengan kolom 'role'
     public function teams()
     {
         return $this->belongsToMany(Team::class, 'team_user')

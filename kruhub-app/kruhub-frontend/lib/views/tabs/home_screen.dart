@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/project_state.dart';
 import '../../widgets/project_selector_header.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,8 +24,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
+
     try {
+      // 1. Ambil daftar project milik user
       final projects = await ApiService.getUserTeams();
 
       if (mounted) {
@@ -32,17 +36,21 @@ class _HomeScreenState extends State<HomeScreen> {
           _userProjects = projects;
 
           if (_userProjects.isNotEmpty) {
-            if (_activeProject == null || !_userProjects.any((p) => p['id'].toString() == _activeProject!['id'].toString())) {
+            // Pilih project pertama jika belum ada yang dipilih atau project lama sudah tidak ada
+            if (_activeProject == null ||
+                !_userProjects.any((p) => p['id'].toString() == _activeProject!['id'].toString())) {
               _activeProject = _userProjects.first;
             }
-            ApiService.activeProjectId = _activeProject!['id'].toString();
+            // Publikasikan ID project aktif ke seluruh aplikasi via ProjectState
+            ProjectState.setActiveProject(_activeProject!['id'].toString());
           } else {
             _activeProject = null;
-            ApiService.activeProjectId = null;
+            ProjectState.setActiveProject(null);
           }
         });
       }
 
+      // 2. Ambil summary & tasks jika ada project yang aktif
       if (ApiService.activeProjectId != null) {
         final summary = await ApiService.getDashboardSummary();
         final tasks = await ApiService.getTasks();
@@ -93,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // HEADER USER PROFILE
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -124,20 +133,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 20),
 
+                      // SELECTOR PROJECT (DRAFT / ACTIVE PROJECT)
                       ProjectSelectorHeader(
                         userProjects: _userProjects,
                         activeProject: _activeProject,
                         onProjectSelected: (project) {
                           setState(() {
                             _activeProject = project;
-                            ApiService.activeProjectId = project['id'].toString();
                           });
+                          // Update state global agar tab lain ikut merefresh data
+                          ProjectState.setActiveProject(project['id'].toString());
                           _loadData();
                         },
                         onRefresh: _loadData,
                       ),
                       const SizedBox(height: 16),
 
+                      // RINGKASAN DASHBOARD & UPCOMING DEADLINES
                       if (_userProjects.isNotEmpty && ApiService.activeProjectId != null) ...[
                         GridView.count(
                           crossAxisCount: 2,

@@ -16,7 +16,7 @@ class Team extends Model
         'description',
     ];
 
-    // Relasi Many-to-Many ke User via pivot team_user
+    // Relasi Many-to-Many ke User via pivot team_user dengan kolom 'role'
     public function members()
     {
         return $this->belongsToMany(User::class, 'team_user')

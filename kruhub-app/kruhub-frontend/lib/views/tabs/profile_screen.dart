@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
+import '../../services/project_state.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -43,7 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
         (route) => false,
       );
     }
@@ -105,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     children: [
                                       Text(_user?['name'] ?? '-', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                                       const SizedBox(height: 2),
-                                      Text(_user?['role'] ?? '-', style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                                      Text(_user?['role'] ?? 'Member', style: const TextStyle(color: Colors.grey, fontSize: 14)),
                                     ],
                                   ),
                                 ),
@@ -117,35 +119,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                            // KARTU ACTIVE PROJECT ID (OTOMATIS MENDENGARKAN DROPDOWN HOME)
+                            ValueListenableBuilder<String?>(
+                              valueListenable: ProjectState.activeProjectIdNotifier,
+                              builder: (context, activeId, child) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text('Active Project ID', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                                      const SizedBox(height: 2),
-                                      Text(ApiService.activeProjectId ?? 'No Project', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                  if (ApiService.activeProjectId != null)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(8)),
-                                      child: Row(
-                                        children: const [
-                                          Icon(Icons.copy, color: Colors.white, size: 14),
-                                          SizedBox(width: 6),
-                                          Text('Copy', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Active Project ID', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                                          const SizedBox(height: 2),
+                                          Text(activeId ?? 'No Project Selected', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                                         ],
                                       ),
-                                    )
-                                ],
-                              ),
-                            )
+                                      if (activeId != null)
+                                        InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: activeId));
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Project ID berhasil disalin!'), duration: Duration(seconds: 2)),
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(8)),
+                                            child: Row(
+                                              children: const [
+                                                Icon(Icons.copy, color: Colors.white, size: 14),
+                                                SizedBox(width: 6),
+                                                Text('Copy', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -160,9 +177,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             _buildAccountRow(Icons.person_outline, 'Full Name', _user?['name'] ?? '-'),
                             const SizedBox(height: 16),
-                            _buildAccountRow(Icons.verified_user_outlined, 'Role', _user?['role'] ?? '-'),
+                            _buildAccountRow(Icons.verified_user_outlined, 'Role', _user?['role'] ?? 'Member'),
                             const SizedBox(height: 16),
-                            _buildAccountRow(Icons.movie_creation_outlined, 'Division', _user?['division'] ?? '-'),
+                            _buildAccountRow(Icons.movie_creation_outlined, 'Division', _user?['division'] ?? 'General'),
                             const SizedBox(height: 16),
                             _buildAccountRow(Icons.email_outlined, 'Email', _user?['email'] ?? '-'),
                           ],

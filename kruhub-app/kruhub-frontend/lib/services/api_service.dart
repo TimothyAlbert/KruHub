@@ -3,15 +3,24 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl = 'https://kruhub-production.up.railway.app/api';
+  
+  // Storage Global State
   static String? token;
   static String? activeProjectId;
 
+  // Header Dinamik: Otomatis menyuntikkan Token & X-Project-ID
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
         if (activeProjectId != null) 'X-Project-ID': activeProjectId!,
       };
+
+  // Helper untuk menetapkan Project Aktif
+  static void setActiveProject(String? projectId) {
+    activeProjectId = projectId;
+    print('📌 Active Project ID diset ke: $activeProjectId');
+  }
 
   // 1. Login
   static Future<bool> login(String email, String password) async {
@@ -38,7 +47,7 @@ class ApiService {
     }
   }
 
-  // 2. Register (Mengembalikan Map agar pesan error dari Laravel bisa dibaca)
+  // 2. Register
   static Future<Map<String, dynamic>> register(String name, String email, String password) async {
     try {
       print('=== MENCOBA REGISTER ===');
@@ -56,7 +65,6 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true, 'message': 'Registrasi berhasil'};
       } else {
-        // Mengambil pesan error dari Laravel (misal: email sudah dipakai)
         return {
           'success': false, 
           'message': data['message'] ?? 'Registrasi gagal'
@@ -82,49 +90,7 @@ class ApiService {
     }
   }
 
-  // 4. Dashboard Summary
-  static Future<Map<String, dynamic>?> getDashboardSummary() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/dashboard/summary'), headers: headers);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Gagal mengambil data ringkasan');
-    } catch (e) {
-      print('🚨 ERROR KONEKSI DASHBOARD: $e');
-      rethrow;
-    }
-  }
-
-  // 5. Tasks
-  static Future<List<dynamic>> getTasks() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/tasks'), headers: headers);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Gagal mengambil daftar tugas');
-    } catch (e) {
-      print('🚨 ERROR KONEKSI TASKS: $e');
-      rethrow;
-    }
-  }
-
-  // 6. Assets
-  static Future<List<dynamic>> getAssets() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/assets'), headers: headers);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Gagal mengambil daftar aset');
-    } catch (e) {
-      print('🚨 ERROR KONEKSI ASSETS: $e');
-      rethrow;
-    }
-  }
-
-  // 7. User Profile
+  // 4. User Profile
   static Future<Map<String, dynamic>?> getUserProfile() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/user'), headers: headers);
@@ -138,26 +104,95 @@ class ApiService {
     }
   }
 
-  // 8. Team Members
-  static Future<List<dynamic>> getTeamMembers() async {
+  // 5. Dashboard Summary (Mengirim Header X-Project-ID)
+  static Future<Map<String, dynamic>?> getDashboardSummary() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/team/members'), headers: headers);
+      print('=== FETCH DASHBOARD SUMMARY (Project: $activeProjectId) ===');
+      final response = await http.get(Uri.parse('$baseUrl/dashboard/summary'), headers: headers);
+      
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Gagal mengambil daftar anggota tim');
+      return null;
     } catch (e) {
-      print('🚨 ERROR KONEKSI TEAM MEMBERS: $e');
-      rethrow;
+      print('🚨 ERROR KONEKSI DASHBOARD: $e');
+      return null;
     }
   }
 
-  // 9. Buat Project / Tim Baru
+  // 6. Tasks (Filter berdasarkan X-Project-ID)
+  static Future<List<dynamic>> getTasks() async {
+    try {
+      print('=== FETCH TASKS (Project: $activeProjectId) ===');
+      final response = await http.get(Uri.parse('$baseUrl/tasks'), headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data is List ? data : [];
+      }
+      return [];
+    } catch (e) {
+      print('🚨 ERROR KONEKSI TASKS: $e');
+      return [];
+    }
+  }
+
+  // 7. Assets (Filter berdasarkan X-Project-ID)
+  static Future<List<dynamic>> getAssets() async {
+    try {
+      print('=== FETCH ASSETS (Project: $activeProjectId) ===');
+      final response = await http.get(Uri.parse('$baseUrl/assets'), headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data is List ? data : [];
+      }
+      return [];
+    } catch (e) {
+      print('🚨 ERROR KONEKSI ASSETS: $e');
+      return [];
+    }
+  }
+
+  // 8. Team Members (Filter berdasarkan X-Project-ID)
+  static Future<List<dynamic>> getTeamMembers() async {
+    try {
+      print('=== FETCH TEAM MEMBERS (Project: $activeProjectId) ===');
+      final response = await http.get(Uri.parse('$baseUrl/team/members'), headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data is List ? data : [];
+      }
+      return [];
+    } catch (e) {
+      print('🚨 ERROR KONEKSI TEAM MEMBERS: $e');
+      return [];
+    }
+  }
+
+  // 9. Ambil Semua Project Yang Diikuti User
+  static Future<List<dynamic>> getUserTeams() async {
+    try {
+      print('=== FETCH USER TEAMS ===');
+      final response = await http.get(Uri.parse('$baseUrl/user/teams'), headers: headers);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data is List ? data : [];
+      }
+    } catch (e) {
+      print('🚨 ERROR KONEKSI GET USER TEAMS: $e');
+    }
+    return [];
+  }
+
+  // 10. Buat Project / Tim Baru
   static Future<Map<String, dynamic>> createTeam({
     required String name,
     required String teamCode,
     required String description,
-    required List<String> roles,
+    List<String>? roles,
   }) async {
     try {
       final response = await http.post(
@@ -167,7 +202,7 @@ class ApiService {
           'name': name,
           'team_code': teamCode,
           'description': description,
-          'roles': roles,
+          if (roles != null) 'roles': roles,
         }),
       );
       final data = jsonDecode(response.body);
@@ -181,7 +216,7 @@ class ApiService {
     }
   }
 
-  // 10. Gabung ke Project / Tim
+  // 11. Gabung ke Project / Tim
   static Future<Map<String, dynamic>> joinTeam(String teamCode) async {
     try {
       final response = await http.post(
@@ -191,25 +226,12 @@ class ApiService {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Permintaan bergabung berhasil dikirim'};
+        return {'success': true, 'message': data['message'] ?? 'Berhasil bergabung ke project!'};
       }
       return {'success': false, 'message': data['message'] ?? 'Gagal bergabung ke project'};
     } catch (e) {
       print('🚨 ERROR KONEKSI JOIN TEAM: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
     }
-  }
-
-  // 11. Ambil Semua Project Yang Diikuti User
-  static Future<List<dynamic>> getUserTeams() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/user/teams'), headers: headers);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (e) {
-      print('🚨 ERROR KONEKSI GET USER TEAMS: $e');
-    }
-    return [];
   }
 }
