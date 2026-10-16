@@ -11,9 +11,6 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * Field yang diizinkan untuk diisi secara langsung dari request/register
-     */
     protected $fillable = [
         'name',
         'email',
@@ -25,11 +22,11 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected function casts(): array
+    // Relasi Many-to-Many ke Team via pivot team_user
+    public function teams()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsToMany(Team::class, 'team_user')
+                    ->withPivot('role')
+                    ->withTimestamps();
     }
 }
