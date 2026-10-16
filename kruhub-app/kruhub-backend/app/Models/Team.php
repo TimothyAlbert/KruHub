@@ -4,21 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Team extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
         'team_code',
         'description',
-        'roles',
-        'owner_id', // Sesuaikan jika ada kolom owner/user_id
-    ];
-
-    protected $casts = [
-        'roles' => 'array', // Mengonversi array dari Flutter otomatis menjadi JSON di MySQL
     ];
 
     public function members()
