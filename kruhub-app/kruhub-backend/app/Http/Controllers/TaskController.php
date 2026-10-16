@@ -9,10 +9,14 @@ class TaskController extends Controller
 {
     public function index(Request $request)
     {
-        $user = $request->user();
+        $teamId = $request->header('X-Project-ID');
+
+        if (!$teamId) {
+            return response()->json([]);
+        }
 
         $tasks = Task::with('creator')
-            ->where('team_id', $user->team_id)
+            ->where('team_id', $teamId)
             ->latest()
             ->get();
 
@@ -22,9 +26,10 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
+        $teamId = $request->header('X-Project-ID');
 
-        if (!in_array($user->role, ['ketua_pelaksana', 'pic_divisi'])) {
-            return response()->json(['message' => 'Akses ditolak. Hanya Ketua dan PIC yang dapat membuat tugas.'], 403);
+        if (!$teamId) {
+            return response()->json(['message' => 'Silakan pilih project terlebih dahulu.'], 400);
         }
 
         $validated = $request->validate([
@@ -35,7 +40,7 @@ class TaskController extends Controller
         ]);
 
         $task = Task::create([
-            'team_id' => $user->team_id,
+            'team_id' => $teamId,
             'title' => $validated['title'],
             'division' => $validated['division'],
             'status' => $validated['status'] ?? 'In Progress',
@@ -51,16 +56,16 @@ class TaskController extends Controller
 
     public function show(Request $request, $id)
     {
-        $user = $request->user();
-        $task = Task::where('team_id', $user->team_id)->findOrFail($id);
+        $teamId = $request->header('X-Project-ID');
+        $task = Task::where('team_id', $teamId)->findOrFail($id);
 
         return response()->json($task->load('creator'));
     }
 
     public function update(Request $request, $id)
     {
-        $user = $request->user();
-        $task = Task::where('team_id', $user->team_id)->findOrFail($id);
+        $teamId = $request->header('X-Project-ID');
+        $task = Task::where('team_id', $teamId)->findOrFail($id);
 
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -79,13 +84,8 @@ class TaskController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $user = $request->user();
-
-        if ($user->role !== 'ketua_pelaksana') {
-            return response()->json(['message' => 'Akses ditolak. Hanya Ketua Pelaksana yang dapat menghapus tugas.'], 403);
-        }
-
-        $task = Task::where('team_id', $user->team_id)->findOrFail($id);
+        $teamId = $request->header('X-Project-ID');
+        $task = Task::where('team_id', $teamId)->findOrFail($id);
         $task->delete();
 
         return response()->json(['message' => 'Tugas berhasil dihapus.']);

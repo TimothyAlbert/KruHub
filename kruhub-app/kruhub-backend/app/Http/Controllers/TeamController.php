@@ -18,14 +18,13 @@ class TeamController extends Controller
                 'description' => 'nullable|string',
             ]);
 
-            // 1. Simpan data tim
             $team = Team::create([
                 'name' => $request->name,
                 'team_code' => $request->team_code,
                 'description' => $request->description,
             ]);
 
-            // 2. OTOMATIS GABUNGKAN USER PEMBUAT SEBAGAI OWNER
+            // Otomatis daftarkan pembuat ke pivot table
             $team->members()->attach($request->user()->id, [
                 'role' => 'owner'
             ]);
@@ -48,7 +47,6 @@ class TeamController extends Controller
     public function userTeams(Request $request)
     {
         try {
-            // Mengambil semua tim di mana user terdaftar di pivot table
             $teams = $request->user()->teams;
             return response()->json($teams);
         } catch (\Throwable $e) {
@@ -71,12 +69,10 @@ class TeamController extends Controller
                 return response()->json(['message' => 'Kode tim tidak ditemukan'], 404);
             }
 
-            // Cek jika sudah bergabung
             if ($team->members()->where('user_id', $request->user()->id)->exists()) {
                 return response()->json(['message' => 'Anda sudah bergabung di tim ini'], 400);
             }
 
-            // Attach user sebagai member biasa
             $team->members()->attach($request->user()->id, [
                 'role' => 'member'
             ]);
@@ -93,5 +89,23 @@ class TeamController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    // 4. DAFTAR ANGGOTA TIM AKTIF
+    public function members(Request $request)
+    {
+        $teamId = $request->header('X-Project-ID');
+
+        if (!$teamId) {
+            return response()->json([]);
+        }
+
+        $team = Team::find($teamId);
+
+        if (!$team) {
+            return response()->json([]);
+        }
+
+        return response()->json($team->members);
     }
 }

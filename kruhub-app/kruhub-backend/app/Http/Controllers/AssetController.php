@@ -9,9 +9,13 @@ class AssetController extends Controller
 {
     public function index(Request $request)
     {
-        $user = $request->user();
+        $teamId = $request->header('X-Project-ID');
 
-        $assets = Asset::where('team_id', $user->team_id)
+        if (!$teamId) {
+            return response()->json([]);
+        }
+
+        $assets = Asset::where('team_id', $teamId)
             ->latest()
             ->get();
 
@@ -20,10 +24,10 @@ class AssetController extends Controller
 
     public function store(Request $request)
     {
-        $user = $request->user();
+        $teamId = $request->header('X-Project-ID');
 
-        if ($user->role !== 'ketua_pelaksana') {
-            return response()->json(['message' => 'Akses ditolak. Hanya Ketua Pelaksana yang dapat menambah aset.'], 403);
+        if (!$teamId) {
+            return response()->json(['message' => 'Silakan pilih project terlebih dahulu.'], 400);
         }
 
         $validated = $request->validate([
@@ -34,7 +38,7 @@ class AssetController extends Controller
         ]);
 
         $asset = Asset::create([
-            'team_id' => $user->team_id,
+            'team_id' => $teamId,
             'name' => $validated['name'],
             'category' => $validated['category'],
             'location' => $validated['location'],
@@ -49,21 +53,16 @@ class AssetController extends Controller
 
     public function show(Request $request, $id)
     {
-        $user = $request->user();
-        $asset = Asset::where('team_id', $user->team_id)->findOrFail($id);
+        $teamId = $request->header('X-Project-ID');
+        $asset = Asset::where('team_id', $teamId)->findOrFail($id);
 
         return response()->json($asset);
     }
 
     public function update(Request $request, $id)
     {
-        $user = $request->user();
-
-        if (!in_array($user->role, ['ketua_pelaksana', 'pic_divisi'])) {
-            return response()->json(['message' => 'Akses ditolak. Hanya Ketua dan PIC yang dapat memperbarui aset.'], 403);
-        }
-
-        $asset = Asset::where('team_id', $user->team_id)->findOrFail($id);
+        $teamId = $request->header('X-Project-ID');
+        $asset = Asset::where('team_id', $teamId)->findOrFail($id);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -82,13 +81,8 @@ class AssetController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $user = $request->user();
-
-        if ($user->role !== 'ketua_pelaksana') {
-            return response()->json(['message' => 'Akses ditolak. Hanya Ketua Pelaksana yang dapat menghapus aset.'], 403);
-        }
-
-        $asset = Asset::where('team_id', $user->team_id)->findOrFail($id);
+        $teamId = $request->header('X-Project-ID');
+        $asset = Asset::where('team_id', $teamId)->findOrFail($id);
         $asset->delete();
 
         return response()->json(['message' => 'Aset berhasil dihapus.']);

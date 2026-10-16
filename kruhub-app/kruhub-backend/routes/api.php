@@ -16,13 +16,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
-    // Teams / Projects API (TAMBAHAN RUTE BARU)
-    Route::get('/user/teams', [TeamController::class, 'userTeams']); // Menangani GET /api/user/teams
-    Route::post('/teams', [TeamController::class, 'store']);         // Menangani POST /api/teams (Buat Tim Baru)
-    Route::post('/teams/join', [TeamController::class, 'join']);     // Menangani POST /api/teams/join (Gabung Tim)
-    Route::get('/team/members', [TeamController::class, 'members']); // Menangani GET /api/team/members
+    // Teams / Projects API
+    Route::get('/user/teams', [TeamController::class, 'userTeams']);
+    Route::post('/teams', [TeamController::class, 'store']);
+    Route::post('/teams/join', [TeamController::class, 'join']);
+    Route::get('/team/members', [TeamController::class, 'members']);
 
-    // Dashboard
+    // Dashboard Summary
     Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
 
     // Tasks API

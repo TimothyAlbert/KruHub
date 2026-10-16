@@ -25,14 +25,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Ambil daftar project milik user
       final projects = await ApiService.getUserTeams();
 
       if (mounted) {
         setState(() {
           _userProjects = projects;
 
-          // Pasang active project jika ada dan belum terpilih
           if (_userProjects.isNotEmpty) {
             if (_activeProject == null || !_userProjects.any((p) => p['id'].toString() == _activeProject!['id'].toString())) {
               _activeProject = _userProjects.first;
@@ -45,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
 
-      // 2. Ambil summary & tasks khusus untuk project yang sedang aktif
       if (ApiService.activeProjectId != null) {
         final summary = await ApiService.getDashboardSummary();
         final tasks = await ApiService.getTasks();
@@ -96,7 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // HEADER USER
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -128,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // SELECTOR PROJECT ATAU DISPLAY EMPTY STATE
                       ProjectSelectorHeader(
                         userProjects: _userProjects,
                         activeProject: _activeProject,
@@ -143,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // RINGKASAN DASHBOARD (MUNCUL JIKA USER MEMILIKI PROJECT)
                       if (_userProjects.isNotEmpty && ApiService.activeProjectId != null) ...[
                         GridView.count(
                           crossAxisCount: 2,
