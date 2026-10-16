@@ -30,7 +30,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // 2. LOGIN
+    // 2. LOGIN (Diperbarui: hapus with('team') yang menyebabkan error 500)
     public function login(Request $request)
     {
         $request->validate([
@@ -38,7 +38,7 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = User::with('team')->where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
@@ -51,7 +51,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Login berhasil.',
             'access_token' => $token,
-            'token' => $token, // Ditambahkan agar cocok dengan Flutter ApiService Anda
+            'token' => $token,
             'token_type' => 'Bearer',
             'user' => $user
         ]);
@@ -60,9 +60,7 @@ class AuthController extends Controller
     // 3. USER PROFILE
     public function user(Request $request)
     {
-        return response()->json(
-            $request->user()->load('team')
-        );
+        return response()->json($request->user());
     }
 
     // 4. LOGOUT
