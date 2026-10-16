@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../main_layout.dart';
+// TODO: Sesuaikan lokasi import untuk kedua halaman di bawah ini
+import 'sign_up_screen.dart'; 
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,8 +13,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController(text: 'admin@kruhub.com');
-  final TextEditingController _passwordController = TextEditingController(text: 'password123');
+  // Isian default telah dikosongkan di sini
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -29,7 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // Ubah penampung menjadi bool karena ApiService.login mengembalikan true/false
     final bool isSuccess = await ApiService.login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
@@ -38,17 +41,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
 
-      // Cek langsung nilai boolean-nya
       if (isSuccess) {
         Navigator.pushReplacement(
           context,
-          // Hapus kata 'const' di sini
           MaterialPageRoute(builder: (context) => MainLayout()),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            // Pesan error diubah menjadi statis karena tidak ada kembalian 'message' dari API
             content: Text('Login gagal. Periksa kembali email dan password Anda.'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
@@ -134,7 +134,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
                     child: const Text('Forgot Password?', style: TextStyle(color: Colors.grey, fontSize: 13)),
                   ),
                 ),
@@ -167,7 +174,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text("Don't have an account?", style: TextStyle(color: Colors.grey, fontSize: 13)),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignUpScreen(),
+                          ),
+                        );
+                      },
                       child: const Text('Sign Up', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
                   ],

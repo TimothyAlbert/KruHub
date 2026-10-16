@@ -9,6 +9,28 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    // 1. REGISTER
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        return response()->json([
+            'message' => 'Registrasi berhasil.',
+            'user' => $user
+        ], 201);
+    }
+
+    // 2. LOGIN
     public function login(Request $request)
     {
         $request->validate([
@@ -29,11 +51,13 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Login berhasil.',
             'access_token' => $token,
+            'token' => $token, // Ditambahkan agar cocok dengan Flutter ApiService Anda
             'token_type' => 'Bearer',
             'user' => $user
         ]);
     }
 
+    // 3. USER PROFILE
     public function user(Request $request)
     {
         return response()->json(
@@ -41,6 +65,7 @@ class AuthController extends Controller
         );
     }
 
+    // 4. LOGOUT
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
