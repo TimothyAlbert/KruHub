@@ -2,12 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Pastikan URL ini sudah benar dan berakhiran /api
   static const String baseUrl = 'https://kruhub-production.up.railway.app/api';
   static String? token;
   static String? activeProjectId;
 
-  // Header bawaan untuk setiap request (Penting untuk Laravel)
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -19,8 +17,6 @@ class ApiService {
   static Future<bool> login(String email, String password) async {
     try {
       print('=== MENCOBA LOGIN ===');
-      print('URL: $baseUrl/login');
-      
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
         headers: headers,
@@ -32,7 +28,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        token = data['token']; // Simpan token jika berhasil
+        token = data['token'] ?? data['access_token'];
         return true;
       }
       return false;
@@ -42,8 +38,8 @@ class ApiService {
     }
   }
 
-  // 2. Register
-  static Future<bool> register(String name, String email, String password) async {
+  // 2. Register (Mengembalikan Map agar pesan error dari Laravel bisa dibaca)
+  static Future<Map<String, dynamic>> register(String name, String email, String password) async {
     try {
       print('=== MENCOBA REGISTER ===');
       final response = await http.post(
@@ -51,14 +47,24 @@ class ApiService {
         headers: headers,
         body: jsonEncode({'name': name, 'email': email, 'password': password}),
       );
-      
+
       print('Status Code: ${response.statusCode}');
       print('Response Body: ${response.body}');
 
-      return response.statusCode == 201 || response.statusCode == 200;
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {'success': true, 'message': 'Registrasi berhasil'};
+      } else {
+        // Mengambil pesan error dari Laravel (misal: email sudah dipakai)
+        return {
+          'success': false, 
+          'message': data['message'] ?? 'Registrasi gagal'
+        };
+      }
     } catch (e) {
       print('🚨 ERROR KONEKSI REGISTER: $e');
-      return false;
+      return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
 
@@ -71,7 +77,6 @@ class ApiService {
     } catch (e) {
       print('🚨 ERROR KONEKSI LOGOUT: $e');
     } finally {
-      // Selalu hapus token di HP meskipun API gagal memproses
       token = null;
       activeProjectId = null;
     }
@@ -84,7 +89,6 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
-      print('Error Response Dashboard: ${response.body}');
       throw Exception(jsonDecode(response.body)['message'] ?? 'Gagal mengambil data ringkasan');
     } catch (e) {
       print('🚨 ERROR KONEKSI DASHBOARD: $e');

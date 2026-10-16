@@ -41,18 +41,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => _isLoading = true);
 
-    final bool isSuccess = await ApiService.register(name, email, password);
+// Panggil API register
+final result = await ApiService.register(name, email, password);
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+if (mounted) {
+  setState(() => _isLoading = false);
 
-      if (isSuccess) {
-        _showSnackBar('Pendaftaran berhasil! Silakan login.', Colors.green);
-        Navigator.pop(context); // Kembali ke halaman login
-      } else {
-        _showSnackBar('Pendaftaran gagal. Email mungkin sudah terdaftar.', Colors.redAccent);
-      }
-    }
+  if (result['success']) {
+    _showSnackBar('Pendaftaran berhasil! Silakan login.', Colors.green);
+    Navigator.pop(context);
+  } else {
+    // Tampilkan pesan error asli dari Laravel di SnackBar
+    _showSnackBar(result['message'], Colors.redAccent);
+  }
+}
   }
 
   void _showSnackBar(String message, Color color) {
