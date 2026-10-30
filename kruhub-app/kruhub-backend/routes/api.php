@@ -21,6 +21,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/teams', [TeamController::class, 'store']);
     Route::post('/teams/join', [TeamController::class, 'join']);
     Route::get('/team/members', [TeamController::class, 'members']);
+    Route::put('/team/members/{userId}', [TeamController::class, 'updateMember']);
+    Route::delete('/team/members/{userId}', [TeamController::class, 'removeMember']);
 
     // Dashboard Summary
     Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
@@ -29,5 +31,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('tasks', TaskController::class);
 
     // Assets API
-    Route::apiResource('assets', AssetController::class);
+    Route::get('/assets', [AssetController::class, 'index']);
+    Route::post('/assets', [AssetController::class, 'store']);
+    Route::get('/assets/{id}', [AssetController::class, 'show']);
+    Route::put('/assets/{id}', [AssetController::class, 'update']);
+    Route::delete('/assets/{id}', [AssetController::class, 'destroy']);
+    Route::patch('/assets/{id}/approve', [AssetController::class, 'approve']);
 });

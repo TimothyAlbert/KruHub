@@ -11,12 +11,27 @@ class CreateProjectScreen extends StatefulWidget {
 class _CreateProjectScreenState extends State<CreateProjectScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _idController = TextEditingController();
+  final _clientController = TextEditingController();
+  final _budgetController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _projectTypeController = TextEditingController();
+  final _statusController = TextEditingController();
+  final _startDateController = TextEditingController();
+  final _endDateController = TextEditingController();
+  final _objectiveController = TextEditingController();
+  final _scopeController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _roleController = TextEditingController();
 
-  final List<String> _roles = ['Ketua Pelaksana', 'PIC Divisi', 'Staf'];
+  final List<String> _roles = ['Owner', 'Project Lead', 'Division Lead', 'Member'];
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusController.text = 'Planning';
+    _projectTypeController.text = 'Product';
+  }
 
   void _addRole() {
     final roleText = _roleController.text.trim();
@@ -36,6 +51,20 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     }
   }
 
+  Future<void> _pickDate(TextEditingController controller) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      controller.text = picked.toIso8601String().split('T').first;
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -43,8 +72,17 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
     final res = await ApiService.createTeam(
       name: _nameController.text.trim(),
-      teamCode: _idController.text.trim(),
+      teamCode: '',
       description: _descriptionController.text.trim(),
+      projectType: _projectTypeController.text.trim(),
+      projectStatus: _statusController.text.trim(),
+      clientName: _clientController.text.trim(),
+      budget: _budgetController.text.trim(),
+      startDate: _startDateController.text.trim(),
+      endDate: _endDateController.text.trim(),
+      location: _locationController.text.trim(),
+      objective: _objectiveController.text.trim(),
+      scope: _scopeController.text.trim(),
       roles: _roles,
     );
 
@@ -84,23 +122,65 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildLabel('Nama Team / Project'),
-                _buildTextField(_nameController, 'Contoh: Skyline Feature Film', validator: (v) => v!.isEmpty ? 'Nama Wajib diisi' : null),
+                _buildLabel('Nama Project'),
+                _buildTextField(_nameController, 'Contoh: Skyline Feature Film', validator: (v) => v!.isEmpty ? 'Nama project wajib diisi' : null),
                 const SizedBox(height: 16),
 
-                _buildLabel('ID Project (Unique Code)'),
-                _buildTextField(_idController, 'Contoh: KRU-U-8F3K2', validator: (v) => v!.isEmpty ? 'ID Project wajib diisi' : null),
+                _buildLabel('Tipe Project'),
+                _buildTextField(_projectTypeController, 'Contoh: Product / Campaign / Internal'),
+                const SizedBox(height: 16),
+
+                _buildLabel('Client / Brand'),
+                _buildTextField(_clientController, 'Contoh: PT Maju Bersama'),
+                const SizedBox(height: 16),
+
+                _buildLabel('Status Project'),
+                _buildTextField(_statusController, 'Contoh: Planning / Active / On Hold'),
+                const SizedBox(height: 16),
+
+                _buildLabel('Budget / Anggaran'),
+                _buildTextField(_budgetController, 'Contoh: Rp 250.000.000'),
+                const SizedBox(height: 16),
+
+                _buildLabel('Lokasi Project'),
+                _buildTextField(_locationController, 'Contoh: Jakarta / Remote / Hybrid'),
+                const SizedBox(height: 16),
+
+                _buildLabel('Tanggal Mulai'),
+                GestureDetector(
+                  onTap: () => _pickDate(_startDateController),
+                  child: AbsorbPointer(
+                    child: _buildTextField(_startDateController, 'YYYY-MM-DD'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                _buildLabel('Tanggal Selesai'),
+                GestureDetector(
+                  onTap: () => _pickDate(_endDateController),
+                  child: AbsorbPointer(
+                    child: _buildTextField(_endDateController, 'YYYY-MM-DD'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                _buildLabel('Tujuan Project'),
+                _buildTextField(_objectiveController, 'Jelaskan tujuan utama project...', maxLines: 3),
+                const SizedBox(height: 16),
+
+                _buildLabel('Scope / Cakupan Project'),
+                _buildTextField(_scopeController, 'Jelaskan cakupan kerja, deliverable, dan target...', maxLines: 3),
                 const SizedBox(height: 16),
 
                 _buildLabel('Deskripsi Project'),
-                _buildTextField(_descriptionController, 'Jelaskan tujuan dan cakupan project...', maxLines: 3),
+                _buildTextField(_descriptionController, 'Jelaskan detail, timing, dan kebutuhan tim...', maxLines: 4),
                 const SizedBox(height: 20),
 
                 _buildLabel('Role & Divisi Dalam Project'),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField(_roleController, 'Tambah Role Baru...'),
+                      child: _buildTextField(_roleController, 'Tambah role atau divisi...'),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(

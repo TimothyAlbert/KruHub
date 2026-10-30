@@ -11,10 +11,20 @@ return new class extends Migration
         Schema::create('teams', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('team_code')->unique(); // Contoh: KRU-U-8F3K2
+            $table->string('team_code')->unique();
             $table->text('description')->nullable();
+            $table->string('project_type')->nullable();
+            $table->string('project_status')->default('Planning');
+            $table->string('client_name')->nullable();
+            $table->string('budget')->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->string('location')->nullable();
+            $table->text('objective')->nullable();
+            $table->text('scope')->nullable();
+            $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
-            $table->softDeletes(); // Audit Trail
+            $table->softDeletes();
         });
     }
 

@@ -15,8 +15,11 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['ketua_pelaksana', 'pic_divisi', 'staf'])->default('staf');
+            $table->enum('role', ['owner', 'project_lead', 'division_lead', 'member'])->default('member');
             $table->string('division')->nullable();
+            $table->string('position')->nullable();
+            $table->string('phone')->nullable();
+            $table->text('bio')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

@@ -13,10 +13,16 @@ return new class extends Migration
             $table->foreignId('team_id')->constrained('teams')->cascadeOnDelete();
             $table->string('name');
             $table->string('category');
+            $table->string('division')->default('General');
             $table->string('location');
             $table->enum('status', ['Available', 'In Use', 'Maintenance'])->default('Available');
+            $table->enum('approval_status', ['Pending', 'Approved', 'Rejected'])->default('Pending');
+            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('related_task_id')->nullable()->constrained('tasks')->nullOnDelete();
+            $table->text('description')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
-            $table->softDeletes(); // Audit Trail
+            $table->softDeletes();
         });
     }
 

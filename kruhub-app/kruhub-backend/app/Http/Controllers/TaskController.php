@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Models\Team;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -15,10 +16,24 @@ class TaskController extends Controller
             return response()->json([]);
         }
 
-        $tasks = Task::with('creator')
-            ->where('team_id', $teamId)
-            ->latest()
-            ->get();
+        $team = Team::findOrFail($teamId);
+        $query = Task::with('creator')->where('team_id', $teamId);
+
+        if ($request->filled('division')) {
+            $query->where('division', $request->division);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $tasks = $query->latest()->get();
+
+        if (!$team->canManageMembers($request->user()) && $request->user()->division) {
+            $tasks = $tasks->filter(function (Task $task) use ($request) {
+                return $task->division === $request->user()->division || $task->division === 'General';
+            })->values();
+        }
 
         return response()->json($tasks);
     }
@@ -30,6 +45,13 @@ class TaskController extends Controller
 
         if (!$teamId) {
             return response()->json(['message' => 'Silakan pilih project terlebih dahulu.'], 400);
+        }
+
+        $team = Team::findOrFail($teamId);
+        $division = $request->division ?? $user->division ?? 'General';
+
+        if (!$team->canManageMembers($user) && !$team->canManageDivision($user, $division)) {
+            return response()->json(['message' => 'Anda tidak memiliki izin menambahkan task di divisi ini.'], 403);
         }
 
         $validated = $request->validate([
@@ -50,22 +72,32 @@ class TaskController extends Controller
 
         return response()->json([
             'message' => 'Tugas berhasil dibuat.',
-            'data' => $task
+            'data' => $task->load('creator')
         ], 201);
     }
 
     public function show(Request $request, $id)
     {
         $teamId = $request->header('X-Project-ID');
-        $task = Task::where('team_id', $teamId)->findOrFail($id);
+        $team = Team::findOrFail($teamId);
+        $task = Task::where('team_id', $teamId)->with('creator')->findOrFail($id);
 
-        return response()->json($task->load('creator'));
+        if (!$team->canManageMembers($request->user()) && $request->user()->division && $task->division !== $request->user()->division) {
+            return response()->json(['message' => 'Anda tidak memiliki akses ke task ini.'], 403);
+        }
+
+        return response()->json($task);
     }
 
     public function update(Request $request, $id)
     {
         $teamId = $request->header('X-Project-ID');
+        $team = Team::findOrFail($teamId);
         $task = Task::where('team_id', $teamId)->findOrFail($id);
+
+        if (!$team->canManageMembers($request->user()) && $request->user()->division && $task->division !== $request->user()->division) {
+            return response()->json(['message' => 'Anda tidak memiliki izin mengubah task ini.'], 403);
+        }
 
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
@@ -78,14 +110,20 @@ class TaskController extends Controller
 
         return response()->json([
             'message' => 'Tugas berhasil diperbarui.',
-            'data' => $task
+            'data' => $task->fresh('creator')
         ]);
     }
 
     public function destroy(Request $request, $id)
     {
         $teamId = $request->header('X-Project-ID');
+        $team = Team::findOrFail($teamId);
         $task = Task::where('team_id', $teamId)->findOrFail($id);
+
+        if (!$team->canManageMembers($request->user()) && $request->user()->division && $task->division !== $request->user()->division) {
+            return response()->json(['message' => 'Anda tidak memiliki izin menghapus task ini.'], 403);
+        }
+
         $task->delete();
 
         return response()->json(['message' => 'Tugas berhasil dihapus.']);

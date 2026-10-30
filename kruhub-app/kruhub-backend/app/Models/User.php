@@ -17,6 +17,9 @@ class User extends Authenticatable
         'password',
         'role',
         'division',
+        'position',
+        'phone',
+        'bio',
     ];
 
     protected $hidden = [
@@ -24,11 +27,51 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    // Relasi Many-to-Many ke Team via pivot team_user dengan kolom 'role'
     public function teams()
     {
         return $this->belongsToMany(Team::class, 'team_user')
-                    ->withPivot('role')
-                    ->withTimestamps();
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function ownedTeams()
+    {
+        return $this->hasMany(Team::class, 'owner_id');
+    }
+
+    public function isProjectOwner(?Team $team = null): bool
+    {
+        if ($team === null) {
+            return false;
+        }
+
+        return (int) $team->owner_id === (int) $this->id || $team->members()
+            ->where('users.id', $this->id)
+            ->wherePivot('role', 'owner')
+            ->exists();
+    }
+
+    public function isProjectLead(?Team $team = null): bool
+    {
+        if ($team === null) {
+            return false;
+        }
+
+        return $team->members()
+            ->where('users.id', $this->id)
+            ->wherePivot('role', 'project_lead')
+            ->exists();
+    }
+
+    public function isDivisionLead(?Team $team = null): bool
+    {
+        if ($team === null) {
+            return false;
+        }
+
+        return $team->members()
+            ->where('users.id', $this->id)
+            ->wherePivot('role', 'division_lead')
+            ->exists();
     }
 }

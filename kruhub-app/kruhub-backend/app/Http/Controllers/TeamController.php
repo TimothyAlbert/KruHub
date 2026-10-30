@@ -3,51 +3,70 @@
 namespace App\Http\Controllers;
 
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class TeamController extends Controller
 {
-    // 1. BUAT TIM BARU & OTOMATIS GABUNGKAN PEMBUAT SEBAGAI OWNER
     public function store(Request $request)
     {
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
-                'team_code' => 'required|string|unique:teams,team_code',
+                'team_code' => 'nullable|string|max:50|unique:teams,team_code',
                 'description' => 'nullable|string',
+                'project_type' => 'nullable|string|max:255',
+                'project_status' => 'nullable|string|max:255',
+                'client_name' => 'nullable|string|max:255',
+                'budget' => 'nullable|string|max:255',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'location' => 'nullable|string|max:255',
+                'objective' => 'nullable|string',
+                'scope' => 'nullable|string',
             ]);
+
+            $teamCode = $request->team_code ?: Team::generateUniqueTeamCode();
 
             $team = Team::create([
                 'name' => $request->name,
-                'team_code' => $request->team_code,
+                'team_code' => $teamCode,
                 'description' => $request->description,
+                'project_type' => $request->project_type,
+                'project_status' => $request->project_status ?? 'Planning',
+                'client_name' => $request->client_name,
+                'budget' => $request->budget,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'location' => $request->location,
+                'objective' => $request->objective,
+                'scope' => $request->scope,
+                'owner_id' => $request->user()->id,
             ]);
 
-            // Selalu tetapkan pembuat tim dengan role 'owner' di pivot table
             $team->members()->attach($request->user()->id, [
-                'role' => 'owner'
+                'role' => 'owner',
             ]);
 
             return response()->json([
                 'message' => 'Project berhasil dibuat dan Anda otomatis menjadi Owner!',
-                'data' => $team->load('members')
+                'data' => $team->load('members', 'owner')
             ], 201);
-
         } catch (\Throwable $e) {
             Log::error('Error store team: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Gagal membuat team',
-                'error' => $e->getMessage()
+                'message' => 'Gagal membuat project',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    // 2. AMBIL DAFTAR TIM DIIKUTI USER
     public function userTeams(Request $request)
     {
         try {
-            $teams = $request->user()->teams;
+            $teams = $request->user()->teams()->with('owner')->get();
             return response()->json($teams);
         } catch (\Throwable $e) {
             Log::error('Error fetching user teams: ' . $e->getMessage());
@@ -55,44 +74,48 @@ class TeamController extends Controller
         }
     }
 
-    // 3. GABUNG TIM LEWAT KODE SEBAGAI MEMBER
     public function join(Request $request)
     {
         try {
             $request->validate([
                 'team_code' => 'required|string',
+                'division' => 'nullable|string',
+                'role' => 'nullable|string|in:member,project_lead,division_lead',
             ]);
 
             $team = Team::where('team_code', $request->team_code)->first();
 
             if (!$team) {
-                return response()->json(['message' => 'Kode tim tidak ditemukan'], 404);
+                return response()->json(['message' => 'Kode project tidak ditemukan'], 404);
             }
 
             if ($team->members()->where('user_id', $request->user()->id)->exists()) {
-                return response()->json(['message' => 'Anda sudah bergabung di tim ini'], 400);
+                return response()->json(['message' => 'Anda sudah bergabung di project ini'], 400);
             }
 
-            // Pendaftar baru via kode tim ditetapkan sebagai 'member'
-            $team->members()->attach($request->user()->id, [
-                'role' => 'member'
+            $request->user()->teams()->attach($team->id, [
+                'role' => $request->role ?? 'member',
             ]);
+
+            $user = $request->user();
+            if ($request->division) {
+                $user->division = $request->division;
+                $user->save();
+            }
 
             return response()->json([
                 'message' => 'Berhasil bergabung ke project!',
-                'data' => $team
+                'data' => $team,
             ], 200);
-
         } catch (\Throwable $e) {
             Log::error('Error join team: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Gagal bergabung ke team',
-                'error' => $e->getMessage()
+                'message' => 'Gagal bergabung ke project',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    // 4. DAFTAR ANGGOTA TIM AKTIF BERDASARKAN X-PROJECT-ID
     public function members(Request $request)
     {
         $teamId = $request->header('X-Project-ID');
@@ -101,13 +124,73 @@ class TeamController extends Controller
             return response()->json([]);
         }
 
-        $team = Team::find($teamId);
+        $team = Team::with('members')->find($teamId);
 
         if (!$team) {
             return response()->json([]);
         }
 
-        // Mengembalikan anggota beserta data pivot-nya (pivot.role)
-        return response()->json($team->members);
+        return response()->json($team->members->map(function (User $user) use ($team) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'division' => $user->division ?? 'General',
+                'role' => $user->pivot->role ?? 'member',
+                'position' => $user->position,
+                'phone' => $user->phone,
+                'can_manage_members' => $team->canManageMembers($user),
+            ];
+        }));
+    }
+
+    public function updateMember(Request $request, $userId)
+    {
+        $teamId = $request->header('X-Project-ID');
+        $team = Team::findOrFail($teamId);
+
+        if (!$team->canManageMembers($request->user())) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk mengelola anggota project'], 403);
+        }
+
+        $member = $team->members()->where('users.id', $userId)->firstOrFail();
+
+        $validated = $request->validate([
+            'role' => 'sometimes|in:owner,project_lead,division_lead,member',
+            'division' => 'sometimes|string|max:255',
+            'position' => 'sometimes|string|max:255',
+        ]);
+
+        $member->pivot->role = $validated['role'] ?? $member->pivot->role;
+        $member->division = $validated['division'] ?? $member->division;
+        $member->position = $validated['position'] ?? $member->position;
+        $member->save();
+
+        $team->members()->updateExistingPivot($member->id, [
+            'role' => $member->pivot->role,
+        ]);
+
+        return response()->json([
+            'message' => 'Anggota project berhasil diperbarui.',
+            'data' => $member,
+        ]);
+    }
+
+    public function removeMember(Request $request, $userId)
+    {
+        $teamId = $request->header('X-Project-ID');
+        $team = Team::findOrFail($teamId);
+
+        if (!$team->canManageMembers($request->user())) {
+            return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus anggota project'], 403);
+        }
+
+        if ((int) $request->user()->id === (int) $userId) {
+            return response()->json(['message' => 'Anda tidak dapat menghapus diri sendiri dari project'], 422);
+        }
+
+        $team->members()->detach($userId);
+
+        return response()->json(['message' => 'Anggota project berhasil dihapus.']);
     }
 }
