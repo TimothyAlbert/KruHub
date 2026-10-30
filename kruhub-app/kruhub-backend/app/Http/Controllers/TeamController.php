@@ -80,6 +80,7 @@ class TeamController extends Controller
             $request->validate([
                 'team_code' => 'required|string',
                 'division' => 'nullable|string',
+                'division_id' => 'nullable|exists:divisions,id',
                 'role' => 'nullable|string|in:member,project_lead,division_lead',
             ]);
 
@@ -93,15 +94,26 @@ class TeamController extends Controller
                 return response()->json(['message' => 'Anda sudah bergabung di project ini'], 400);
             }
 
+            $divisionId = $request->filled('division_id')
+                ? $request->division_id
+                : (function () use ($request) {
+                    if (!filled($request->division)) {
+                        return null;
+                    }
+
+                    $division = \App\Models\Division::firstOrCreate([
+                        'name' => trim($request->division),
+                    ], [
+                        'slug' => strtolower(str_replace(' ', '-', trim($request->division))),
+                    ]);
+
+                    return $division->id;
+                })();
+
             $request->user()->teams()->attach($team->id, [
                 'role' => $request->role ?? 'member',
+                'division_id' => $divisionId,
             ]);
-
-            $user = $request->user();
-            if ($request->division) {
-                $user->division = $request->division;
-                $user->save();
-            }
 
             return response()->json([
                 'message' => 'Berhasil bergabung ke project!',
@@ -131,11 +143,14 @@ class TeamController extends Controller
         }
 
         return response()->json($team->members->map(function (User $user) use ($team) {
+            $pivotDivision = $user->pivot?->division_id ? \App\Models\Division::find($user->pivot->division_id) : null;
+
             return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'division' => $user->division ?? 'General',
+                'division' => $pivotDivision?->name ?? 'General',
+                'division_id' => $user->pivot?->division_id,
                 'role' => $user->pivot->role ?? 'member',
                 'position' => $user->position,
                 'phone' => $user->phone,
@@ -158,16 +173,28 @@ class TeamController extends Controller
         $validated = $request->validate([
             'role' => 'sometimes|in:owner,project_lead,division_lead,member',
             'division' => 'sometimes|string|max:255',
+            'division_id' => 'sometimes|nullable|exists:divisions,id',
             'position' => 'sometimes|string|max:255',
         ]);
 
         $member->pivot->role = $validated['role'] ?? $member->pivot->role;
-        $member->division = $validated['division'] ?? $member->division;
         $member->position = $validated['position'] ?? $member->position;
         $member->save();
 
+        $pivotDivisionId = $validated['division_id'] ?? $member->pivot->division_id ?? null;
+
+        if (array_key_exists('division', $validated) && !blank($validated['division'])) {
+            $division = \App\Models\Division::firstOrCreate([
+                'name' => trim((string) $validated['division']),
+            ], [
+                'slug' => strtolower(str_replace(' ', '-', trim((string) $validated['division']))),
+            ]);
+            $pivotDivisionId = $division->id;
+        }
+
         $team->members()->updateExistingPivot($member->id, [
             'role' => $member->pivot->role,
+            'division_id' => $pivotDivisionId,
         ]);
 
         return response()->json([

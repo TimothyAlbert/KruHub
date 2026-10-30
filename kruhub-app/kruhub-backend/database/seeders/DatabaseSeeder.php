@@ -91,8 +91,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@kruhub.com',
             'password' => $passwordHash,
             'role' => 'admin',
-            'division' => 'System Administration',
-            'division_id' => $systemAdministrationDivisionId,
             'position' => 'Platform Administrator',
             'phone' => '081234567890',
             'bio' => 'Akun backup admin untuk monitoring dan pemulihan proyek jika terjadi kendala operasional.',
@@ -108,8 +106,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'budi.camera@kruhub.com',
             'password' => $passwordHash,
             'role' => 'user',
-            'division' => 'Kamera & Sinematografi',
-            'division_id' => $cameraDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
@@ -120,8 +116,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'siti.sound@kruhub.com',
             'password' => $passwordHash,
             'role' => 'user',
-            'division' => 'Audio & Tata Suara',
-            'division_id' => $audioDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
@@ -132,8 +126,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'andi.staff@kruhub.com',
             'password' => $passwordHash,
             'role' => 'user',
-            'division' => 'Lighting',
-            'division_id' => $lightingDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
@@ -145,8 +137,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'maya.doc@kruhub.com',
             'password' => $passwordHash,
             'role' => 'user',
-            'division' => 'Produser Exec',
-            'division_id' => $produserDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);

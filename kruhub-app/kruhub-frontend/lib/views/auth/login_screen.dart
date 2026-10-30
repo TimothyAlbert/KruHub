@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
-import '../admin_dashboard_screen.dart';
+import '../admin_shell_screen.dart';
 import '../main_layout.dart';
 import 'sign_up_screen.dart';
 import 'forgot_password_screen.dart';
@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(
           builder: (context) =>
-              isAdmin ? const AdminDashboardScreen() : const MainLayout(),
+              isAdmin ? const AdminShellScreen() : const MainLayout(),
         ),
       );
     } catch (e) {

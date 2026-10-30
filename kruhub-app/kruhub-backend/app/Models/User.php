@@ -23,8 +23,6 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'division',
-        'division_id',
         'position',
         'phone',
         'bio',
@@ -40,15 +38,10 @@ class User extends Authenticatable
         $this->attributes['role'] = self::normalizeRole($value);
     }
 
-    public function division()
-    {
-        return $this->belongsTo(Division::class);
-    }
-
     public function teams()
     {
         return $this->belongsToMany(Team::class, 'team_user')
-            ->withPivot('role')
+            ->withPivot(['role', 'division_id'])
             ->withTimestamps();
     }
 

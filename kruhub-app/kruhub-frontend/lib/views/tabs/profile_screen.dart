@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../services/api_service.dart';
 import '../../services/project_state.dart';
-import '../admin_dashboard_screen.dart';
+import '../admin_shell_screen.dart';
 import '../auth/login_screen.dart';
 import '../feature_center_screen.dart';
 
@@ -36,7 +37,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat profil: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Gagal memuat profil: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -59,7 +63,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: const Color(0xFF0F0F10),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
             : RefreshIndicator(
                 onRefresh: _fetchProfile,
                 color: Colors.white,
@@ -74,92 +80,196 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Row(
                             children: [
-                              const CircleAvatar(radius: 24, backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12')),
+                              const CircleAvatar(
+                                radius: 24,
+                                backgroundImage: NetworkImage(
+                                  'https://i.pravatar.cc/150?img=12',
+                                ),
+                              ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Welcome back', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                                  const Text(
+                                    'Welcome back',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                   const SizedBox(height: 2),
-                                  Text('Hello, ${_user?['name'] ?? 'User'} 👋', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    'Hello, ${_user?['name'] ?? 'User'} 👋',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                           Container(
-                            decoration: const BoxDecoration(color: Color(0xFF1C1C1E), shape: BoxShape.circle),
-                            child: IconButton(icon: const Icon(Icons.notifications_outlined, color: Colors.white), onPressed: () {}),
-                          )
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1C1C1E),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {},
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),
 
                       Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C1C1E),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         child: Column(
                           children: [
                             Row(
                               children: [
-                                const CircleAvatar(radius: 32, backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12')),
+                                const CircleAvatar(
+                                  radius: 32,
+                                  backgroundImage: NetworkImage(
+                                    'https://i.pravatar.cc/150?img=12',
+                                  ),
+                                ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(_user?['name'] ?? '-', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                      Text(
+                                        _user?['name'] ?? '-',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       const SizedBox(height: 2),
-                                      Text(_user?['role'] ?? 'Member', style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                                      Text(
+                                        _user?['role'] ?? 'Member',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.all(8),
-                                  decoration: const BoxDecoration(color: Color(0xFF2C2C2E), shape: BoxShape.circle),
-                                  child: const Icon(Icons.edit_outlined, color: Colors.white, size: 18),
-                                )
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF2C2C2E),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit_outlined,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 16),
 
                             // KARTU ACTIVE PROJECT ID (OTOMATIS MENDENGARKAN DROPDOWN HOME)
                             ValueListenableBuilder<String?>(
-                              valueListenable: ProjectState.activeProjectIdNotifier,
+                              valueListenable:
+                                  ProjectState.activeProjectIdNotifier,
                               builder: (context, activeId, child) {
                                 return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2C2C2E),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          const Text('Active Project ID', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                                          const Text(
+                                            'Active Project ID',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 11,
+                                            ),
+                                          ),
                                           const SizedBox(height: 2),
-                                          Text(activeId ?? 'No Project Selected', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                                          Text(
+                                            activeId ?? 'No Project Selected',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       if (activeId != null)
                                         InkWell(
                                           onTap: () {
-                                            Clipboard.setData(ClipboardData(text: activeId));
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Project ID berhasil disalin!'), duration: Duration(seconds: 2)),
+                                            Clipboard.setData(
+                                              ClipboardData(text: activeId),
+                                            );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Project ID berhasil disalin!',
+                                                ),
+                                                duration: Duration(seconds: 2),
+                                              ),
                                             );
                                           },
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(8)),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF1C1C1E),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
                                             child: Row(
                                               children: const [
-                                                Icon(Icons.copy, color: Colors.white, size: 14),
+                                                Icon(
+                                                  Icons.copy,
+                                                  color: Colors.white,
+                                                  size: 14,
+                                                ),
                                                 SizedBox(width: 6),
-                                                Text('Copy', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                                Text(
+                                                  'Copy',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ),
-                                        )
+                                        ),
                                     ],
                                   ),
                                 );
@@ -171,58 +281,115 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 24),
 
                       const SizedBox(height: 12),
-                      if ((_user?['role'] ?? '').toString().toLowerCase() == 'admin')
+                      if ((_user?['role'] ?? '').toString().toLowerCase() ==
+                          'admin')
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const AdminShellScreen(),
+                                ),
                               );
                             },
-                            icon: const Icon(Icons.dashboard_customize_rounded, color: Colors.white),
-                            label: const Text('Admin Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            icon: const Icon(
+                              Icons.dashboard_customize_rounded,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'Admin Dashboard',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF1E88E5),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                           ),
                         ),
-                      if ((_user?['role'] ?? '').toString().toLowerCase() == 'admin') const SizedBox(height: 12),
+                      if ((_user?['role'] ?? '').toString().toLowerCase() ==
+                          'admin')
+                        const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const FeatureCenterScreen()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const FeatureCenterScreen(),
+                              ),
                             );
                           },
-                          icon: const Icon(Icons.smart_toy_outlined, color: Colors.white),
-                          label: const Text('Smart Tools', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          icon: const Icon(
+                            Icons.smart_toy_outlined,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            'Smart Tools',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2C2C2E),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
 
-                      const Text('Account Details', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Account Details',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C1C1E),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         child: Column(
                           children: [
-                            _buildAccountRow(Icons.person_outline, 'Full Name', _user?['name'] ?? '-'),
+                            _buildAccountRow(
+                              Icons.person_outline,
+                              'Full Name',
+                              _user?['name'] ?? '-',
+                            ),
                             const SizedBox(height: 16),
-                            _buildAccountRow(Icons.verified_user_outlined, 'Role', _user?['role'] ?? 'Member'),
+                            _buildAccountRow(
+                              Icons.verified_user_outlined,
+                              'Role',
+                              _user?['role'] ?? 'Member',
+                            ),
                             const SizedBox(height: 16),
-                            _buildAccountRow(Icons.movie_creation_outlined, 'Division', _user?['division'] ?? 'General'),
+                            _buildAccountRow(
+                              Icons.movie_creation_outlined,
+                              'Division',
+                              _user?['division'] ?? 'General',
+                            ),
                             const SizedBox(height: 16),
-                            _buildAccountRow(Icons.email_outlined, 'Email', _user?['email'] ?? '-'),
+                            _buildAccountRow(
+                              Icons.email_outlined,
+                              'Email',
+                              _user?['email'] ?? '-',
+                            ),
                           ],
                         ),
                       ),
@@ -234,10 +401,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _handleLogout,
                           icon: const Icon(Icons.logout, color: Colors.white),
-                          label: const Text('Keluar / Logout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          label: const Text(
+                            'Keluar / Logout',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            backgroundColor: Colors.redAccent.withValues(
+                              alpha: 0.8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             elevation: 0,
                           ),
                         ),
@@ -256,18 +433,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2C2C2E),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Icon(icon, color: Colors.grey, size: 20),
         ),
         const SizedBox(width: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
             const SizedBox(height: 2),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
-        )
+        ),
       ],
     );
   }
