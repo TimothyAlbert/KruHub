@@ -43,14 +43,17 @@ class DatabaseSeeder extends Seeder
         // ----------------------------------------------------
         $passwordHash = Hash::make('password123');
 
-        // Main User (Untuk Login Flutter)
+        // Backup Admin (akses penuh jika project utama bermasalah)
         $adminUserId = DB::table('users')->insertGetId([
-            'team_id' => $team1Id,
-            'name' => 'Timothy',
+            'team_id' => null,
+            'name' => 'KruHub Backup Admin',
             'email' => 'admin@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'ketua_pelaksana',
-            'division' => 'Sutradara / Directing',
+            'role' => 'admin',
+            'division' => 'System Administration',
+            'position' => 'Platform Administrator',
+            'phone' => '081234567890',
+            'bio' => 'Akun backup admin untuk monitoring dan pemulihan proyek jika terjadi kendala operasional.',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
@@ -61,7 +64,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Budi Santoso',
             'email' => 'budi.camera@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'pic_divisi',
+            'role' => 'division_lead',
             'division' => 'Kamera & Sinematografi',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
@@ -72,7 +75,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Siti Rahma',
             'email' => 'siti.sound@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'pic_divisi',
+            'role' => 'division_lead',
             'division' => 'Audio & Tata Suara',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
@@ -83,7 +86,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Andi Wijaya',
             'email' => 'andi.staff@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'staf',
+            'role' => 'member',
             'division' => 'Lighting',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
@@ -95,7 +98,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Maya Putri',
             'email' => 'maya.doc@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'ketua_pelaksana',
+            'role' => 'project_lead',
             'division' => 'Produser Exec',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),

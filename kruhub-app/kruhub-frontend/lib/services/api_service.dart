@@ -104,6 +104,21 @@ class ApiService {
     }
   }
 
+  // 4b. Semua User (Admin only)
+  static Future<List<dynamic>> getAllUsers() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/admin/users'), headers: headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data is List ? data : [];
+      }
+      return [];
+    } catch (e) {
+      print('🚨 ERROR KONEKSI GET ALL USERS: $e');
+      return [];
+    }
+  }
+
   // 5. Dashboard Summary (Mengirim Header X-Project-ID)
   static Future<Map<String, dynamic>?> getDashboardSummary() async {
     try {

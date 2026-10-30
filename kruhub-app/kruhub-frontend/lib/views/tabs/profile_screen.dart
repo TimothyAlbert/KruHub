@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 import '../../services/project_state.dart';
+import '../admin_dashboard_screen.dart';
 import '../auth/login_screen.dart';
+import '../feature_center_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -168,6 +170,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 24),
 
+                      const SizedBox(height: 12),
+                      if ((_user?['role'] ?? '').toString().toLowerCase() == 'admin')
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                              );
+                            },
+                            icon: const Icon(Icons.dashboard_customize_rounded, color: Colors.white),
+                            label: const Text('Admin Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E88E5),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ),
+                      if ((_user?['role'] ?? '').toString().toLowerCase() == 'admin') const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const FeatureCenterScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.smart_toy_outlined, color: Colors.white),
+                          label: const Text('Smart Tools', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2C2C2E),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
                       const Text('Account Details', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
                       Container(
@@ -195,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: const Icon(Icons.logout, color: Colors.white),
                           label: const Text('Keluar / Logout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent.withOpacity(0.8),
+                            backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             elevation: 0,
                           ),

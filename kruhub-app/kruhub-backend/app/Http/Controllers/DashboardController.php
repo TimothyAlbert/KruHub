@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\Task;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -30,7 +31,7 @@ class DashboardController extends Controller
 
         $tasks = Task::where('team_id', $teamId)->get();
         $assets = Asset::where('team_id', $teamId)->get();
-        
+
         // Menghitung anggota yang tergabung di team ini via pivot team_user
         $membersCount = User::whereHas('teams', function ($q) use ($teamId) {
             $q->where('teams.id', $teamId);
@@ -47,5 +48,37 @@ class DashboardController extends Controller
             'maintenance_assets' => $assets->where('status', 'Maintenance')->count(),
             'total_team_members' => $membersCount,
         ]);
+    }
+
+    public function adminDashboard()
+    {
+        $stats = [
+            'total_projects' => Team::count(),
+            'active_projects' => Team::where('project_status', 'Active')->count(),
+            'total_members' => User::count(),
+            'total_tasks' => Task::count(),
+            'completed_tasks' => Task::where('status', 'Completed')->count(),
+            'pending_tasks' => Task::whereIn('status', ['In Progress', 'Review'])->count(),
+            'total_assets' => Asset::count(),
+            'available_assets' => Asset::where('status', 'Available')->count(),
+            'maintenance_assets' => Asset::where('status', 'Maintenance')->count(),
+        ];
+
+        $projects = Team::withCount('members')
+            ->orderByDesc('updated_at')
+            ->take(5)
+            ->get();
+
+        $recentTasks = Task::with('team')
+            ->orderByDesc('updated_at')
+            ->take(5)
+            ->get();
+
+        $recentAssets = Asset::with('team')
+            ->orderByDesc('updated_at')
+            ->take(5)
+            ->get();
+
+        return view('admin.dashboard', compact('stats', 'projects', 'recentTasks', 'recentAssets'));
     }
 }

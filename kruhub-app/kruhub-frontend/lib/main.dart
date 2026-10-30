@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'views/auth/login_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const KruHubApp());
 }
 

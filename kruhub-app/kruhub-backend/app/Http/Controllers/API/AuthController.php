@@ -63,6 +63,22 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 
+    // 3b. LIST ALL USERS (ADMIN ONLY)
+    public function allUsers(Request $request)
+    {
+        if (($request->user()->role ?? '') !== 'admin') {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya admin yang dapat melihat semua user.'
+            ], 403);
+        }
+
+        $users = User::select('id', 'name', 'email', 'role', 'division', 'position', 'phone', 'bio', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($users);
+    }
+
     // 4. LOGOUT
     public function logout(Request $request)
     {

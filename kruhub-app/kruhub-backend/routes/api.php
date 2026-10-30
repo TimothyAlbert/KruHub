@@ -15,6 +15,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::get('/admin/users', [AuthController::class, 'allUsers']);
 
     // Teams / Projects API
     Route::get('/user/teams', [TeamController::class, 'userTeams']);
