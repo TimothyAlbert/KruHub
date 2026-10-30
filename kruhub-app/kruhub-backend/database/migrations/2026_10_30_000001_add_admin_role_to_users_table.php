@@ -11,11 +11,15 @@ return new class extends Migration
             return;
         }
 
-        // Role utama global adalah hanya admin atau user biasa.
-        // Role proyek seperti owner / project_lead / division_lead / member dibawa di pivot team_user.
-        DB::statement("UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('admin', 'user')");
+        // 1. Ubah dulu kolom 'role' menjadi VARCHAR secara paksa 
+        // agar batasan ENUM lama hilang dan tidak memicu warning/error truncate saat update.
+        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NULL");
 
-        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'user'");
+        // 2. Baru lakukan normalisasi data lama yang tidak valid
+        DB::statement("UPDATE users SET role = 'member' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('owner', 'project_lead', 'division_lead', 'member', 'admin')");
+
+        // 3. Pastikan struktur akhir kolomnya sesuai dengan standar yang diinginkan
+        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'member'");
     }
 
     public function down(): void
@@ -24,7 +28,6 @@ return new class extends Migration
             return;
         }
 
-        DB::statement("UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('admin', 'user')");
-        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'user'");
+        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'member'");
     }
 };
