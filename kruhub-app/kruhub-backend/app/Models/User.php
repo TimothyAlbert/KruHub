@@ -11,6 +11,13 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public static function normalizeRole(?string $role): string
+    {
+        $value = strtolower(trim((string) $role));
+
+        return in_array($value, ['admin', 'user'], true) ? $value : 'user';
+    }
+
     protected $fillable = [
         'name',
         'email',
@@ -27,6 +34,11 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    public function setRoleAttribute($value): void
+    {
+        $this->attributes['role'] = self::normalizeRole($value);
+    }
 
     public function division()
     {

@@ -48,12 +48,14 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $user->role = User::normalizeRole($user->role);
+
         return response()->json([
             'message' => 'Login berhasil.',
             'access_token' => $token,
             'token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $this->sanitizeUser($user),
         ]);
     }
 
@@ -201,7 +203,9 @@ class AuthController extends Controller
 
     protected function ensureAdmin(Request $request): void
     {
-        if (($request->user()->role ?? '') !== 'admin') {
+        $role = strtolower(trim((string) ($request->user()->role ?? '')));
+
+        if ($role !== 'admin') {
             abort(403, 'Akses ditolak. Hanya admin yang dapat melakukan operasi ini.');
         }
     }
@@ -214,7 +218,7 @@ class AuthController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'role' => $user->role,
+            'role' => User::normalizeRole($user->role),
             'division_id' => $user->division_id,
             'division' => $division?->name ?? $user->division,
             'position' => $user->position,

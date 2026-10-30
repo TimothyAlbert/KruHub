@@ -27,7 +27,8 @@ return new class extends Migration
         }
 
         DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NULL");
-        DB::statement("UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('admin', 'user')");
+        DB::statement("UPDATE users SET role = LOWER(TRIM(role)) WHERE role IS NOT NULL");
+        DB::statement("UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = '' OR LOWER(TRIM(role)) NOT IN ('admin', 'user')");
         DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'user'");
     }
 
