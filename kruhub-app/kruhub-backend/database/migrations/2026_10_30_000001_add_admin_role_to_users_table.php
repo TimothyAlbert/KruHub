@@ -11,12 +11,11 @@ return new class extends Migration
             return;
         }
 
-        // Beberapa record lama bisa memiliki role yang tidak sesuai dengan nama-nama role baru.
-        // Pastikan data invalid di-normalisasi dulu sebelum mengubah tipe kolom.
-        DB::statement("UPDATE users SET role = 'member' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('owner', 'project_lead', 'division_lead', 'member', 'admin')");
+        // Role utama global adalah hanya admin atau user biasa.
+        // Role proyek seperti owner / project_lead / division_lead / member dibawa di pivot team_user.
+        DB::statement("UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('admin', 'user')");
 
-        // Gunakan VARCHAR agar tidak crash karena data lama atau value yang tidak cocok dengan ENUM.
-        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'member'");
+        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'user'");
     }
 
     public function down(): void
@@ -25,7 +24,7 @@ return new class extends Migration
             return;
         }
 
-        DB::statement("UPDATE users SET role = 'member' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('owner', 'project_lead', 'division_lead', 'member')");
-        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'member'");
+        DB::statement("UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = '' OR role NOT IN ('admin', 'user')");
+        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(32) NOT NULL DEFAULT 'user'");
     }
 };

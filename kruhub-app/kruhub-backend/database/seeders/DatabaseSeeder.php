@@ -58,13 +58,14 @@ class DatabaseSeeder extends Seeder
             'updated_at' => Carbon::now(),
         ]);
 
-        // Anggota Tim Project 1 (Skyline Feature Film)
+        // Semua anggota normal memiliki role utama user.
+        // Role proyek spesifik (owner/project lead/etc.) disimpan di pivot team_user.
         $userCameraPIC = DB::table('users')->insertGetId([
             'team_id' => $team1Id,
             'name' => 'Budi Santoso',
             'email' => 'budi.camera@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'division_lead',
+            'role' => 'user',
             'division' => 'Kamera & Sinematografi',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
@@ -75,7 +76,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Siti Rahma',
             'email' => 'siti.sound@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'division_lead',
+            'role' => 'user',
             'division' => 'Audio & Tata Suara',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
@@ -86,7 +87,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Andi Wijaya',
             'email' => 'andi.staff@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'member',
+            'role' => 'user',
             'division' => 'Lighting',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
@@ -98,7 +99,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Maya Putri',
             'email' => 'maya.doc@kruhub.com',
             'password' => $passwordHash,
-            'role' => 'project_lead',
+            'role' => 'user',
             'division' => 'Produser Exec',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),

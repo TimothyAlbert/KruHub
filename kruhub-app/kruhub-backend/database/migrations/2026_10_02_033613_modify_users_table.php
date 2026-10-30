@@ -15,7 +15,9 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['owner', 'project_lead', 'division_lead', 'member'])->default('member');
+            // Role utama global: admin atau user biasa.
+            // Role proyek (owner / project_lead / division_lead / member) dipelihara di pivot team_user.
+            $table->string('role')->default('user');
             $table->string('division')->nullable();
             $table->string('position')->nullable();
             $table->string('phone')->nullable();
