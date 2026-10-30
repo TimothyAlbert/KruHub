@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/api_service.dart';
 import '../../services/project_state.dart';
 import '../../widgets/project_selector_header.dart';
@@ -28,6 +29,22 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
 
     try {
+      if (ApiService.isCurrentUserAdmin) {
+        if (mounted) {
+          setState(() {
+            _userProjects = [];
+            _activeProject = null;
+            _summary = null;
+            _tasks = [];
+            ProjectState.setActiveProject(null);
+          });
+        }
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
       // 1. Ambil daftar project milik user
       final projects = await ApiService.getUserTeams();
 
@@ -38,7 +55,9 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_userProjects.isNotEmpty) {
             // Pilih project pertama jika belum ada yang dipilih atau project lama sudah tidak ada
             if (_activeProject == null ||
-                !_userProjects.any((p) => p['id'].toString() == _activeProject!['id'].toString())) {
+                !_userProjects.any(
+                  (p) => p['id'].toString() == _activeProject!['id'].toString(),
+                )) {
               _activeProject = _userProjects.first;
             }
             // Publikasikan ID project aktif ke seluruh aplikasi via ProjectState
@@ -91,7 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xFF0F0F10),
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
             : RefreshIndicator(
                 onRefresh: _loadData,
                 color: Colors.white,
@@ -109,26 +130,47 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               const CircleAvatar(
                                 radius: 24,
-                                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12'),
+                                backgroundImage: NetworkImage(
+                                  'https://i.pravatar.cc/150?img=12',
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: const [
-                                  Text('Welcome back', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                                  Text(
+                                    'Welcome back',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                   SizedBox(height: 2),
-                                  Text('Hello, Timothy 👋', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    'Hello, Timothy 👋',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                           Container(
-                            decoration: const BoxDecoration(color: Color(0xFF1C1C1E), shape: BoxShape.circle),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1C1C1E),
+                              shape: BoxShape.circle,
+                            ),
                             child: IconButton(
-                              icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                              icon: const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                              ),
                               onPressed: () {},
                             ),
-                          )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -142,7 +184,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             _activeProject = project;
                           });
                           // Update state global agar tab lain ikut merefresh data
-                          ProjectState.setActiveProject(project['id'].toString());
+                          ProjectState.setActiveProject(
+                            project['id'].toString(),
+                          );
                           _loadData();
                         },
                         onRefresh: _loadData,
@@ -150,7 +194,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 16),
 
                       // RINGKASAN DASHBOARD & UPCOMING DEADLINES
-                      if (_userProjects.isNotEmpty && ApiService.activeProjectId != null) ...[
+                      if (_userProjects.isNotEmpty &&
+                          ApiService.activeProjectId != null) ...[
                         GridView.count(
                           crossAxisCount: 2,
                           shrinkWrap: true,
@@ -198,8 +243,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: const [
-                            Text('Upcoming Deadlines', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text('See all', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                            Text(
+                              'Upcoming Deadlines',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'See all',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -207,45 +265,108 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(
                           height: 130,
                           child: _tasks.isEmpty
-                              ? const Center(child: Text('Tidak ada tenggat waktu', style: TextStyle(color: Colors.grey)))
+                              ? const Center(
+                                  child: Text(
+                                    'Tidak ada tenggat waktu',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                )
                               : ListView.separated(
                                   scrollDirection: Axis.horizontal,
-                                  itemCount: _tasks.length > 3 ? 3 : _tasks.length,
-                                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                  itemCount: _tasks.length > 3
+                                      ? 3
+                                      : _tasks.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: 12),
                                   itemBuilder: (context, index) {
                                     final task = _tasks[index];
                                     return Container(
                                       width: 220,
                                       padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(20)),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1C1C1E),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
                                               Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
-                                                child: Text(task['division'] ?? 'General', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF2C2C2E,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  task['division'] ?? 'General',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
                                               ),
                                               const Spacer(),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
-                                                child: Text(task['status'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF2C2C2E,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  task['status'] ?? '',
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
                                               ),
                                             ],
                                           ),
                                           const Spacer(),
-                                          Text(task['title'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                          Text(
+                                            task['title'] ?? '',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                           const SizedBox(height: 8),
                                           Row(
                                             children: [
-                                              const Icon(Icons.calendar_today_outlined, color: Colors.grey, size: 13),
+                                              const Icon(
+                                                Icons.calendar_today_outlined,
+                                                color: Colors.grey,
+                                                size: 13,
+                                              ),
                                               const SizedBox(width: 6),
-                                              Text(task['deadline_date'] ?? '-', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                              Text(
+                                                task['deadline_date'] ?? '-',
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
                                             ],
-                                          )
+                                          ),
                                         ],
                                       ),
                                     );
@@ -271,17 +392,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
           const Spacer(),
-          Text(value, style: TextStyle(color: valueColor, fontSize: 26, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],

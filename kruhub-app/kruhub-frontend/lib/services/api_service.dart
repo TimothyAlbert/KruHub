@@ -332,6 +332,10 @@ class ApiService {
 
   // 9. Ambil Semua Project Yang Diikuti User
   static Future<List<dynamic>> getUserTeams() async {
+    if (isCurrentUserAdmin) {
+      return [];
+    }
+
     try {
       print('=== FETCH USER TEAMS ===');
       final response = await http.get(
