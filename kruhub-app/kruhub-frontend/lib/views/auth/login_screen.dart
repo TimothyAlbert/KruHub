@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../../services/api_service.dart';
+import '../admin_dashboard_screen.dart';
 import '../main_layout.dart';
-// TODO: Sesuaikan lokasi import untuk kedua halaman di bawah ini
-import 'sign_up_screen.dart'; 
+import 'sign_up_screen.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -21,7 +22,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
 
   void _handleLogin() async {
-    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Email dan password wajib diisi'),
@@ -33,30 +35,60 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final bool isSuccess = await ApiService.login(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
+    try {
+      final bool isSuccess = await ApiService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
 
-      if (isSuccess) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainLayout()),
-        );
-      } else {
+      if (!isSuccess) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Login gagal. Periksa kembali email dan password Anda.'),
+            content: Text(
+              'Login gagal. Periksa kembali email dan password Anda.',
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final profile = await ApiService.getUserProfile();
+
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      final isAdmin =
+          ApiService.isCurrentUserAdmin ||
+          ((profile?['role'] ?? '').toString().toLowerCase() == 'admin');
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              isAdmin ? const AdminDashboardScreen() : const MainLayout(),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login gagal: $e'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     }
-}
+  }
 
   @override
   void dispose() {
@@ -122,11 +154,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                       color: Colors.grey,
                       size: 20,
                     ),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -142,7 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       );
                     },
-                    child: const Text('Forgot Password?', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -155,16 +193,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
                       disabledBackgroundColor: const Color(0xFF2C2C2E),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                     child: _isLoading
                         ? const SizedBox(
                             height: 24,
                             width: 24,
-                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5),
+                            child: CircularProgressIndicator(
+                              color: Colors.black,
+                              strokeWidth: 2.5,
+                            ),
                           )
-                        : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        : const Text(
+                            'Sign In',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -172,7 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account?", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const Text(
+                      "Don't have an account?",
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -182,7 +234,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: const Text('Sign Up', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),

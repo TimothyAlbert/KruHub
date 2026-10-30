@@ -1,20 +1,25 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl = 'https://kruhub-production.up.railway.app/api';
-  
+
   // Storage Global State
   static String? token;
+  static String? currentUserRole;
   static String? activeProjectId;
+
+  static bool get isCurrentUserAdmin =>
+      (currentUserRole ?? '').toLowerCase() == 'admin';
 
   // Header Dinamik: Otomatis menyuntikkan Token & X-Project-ID
   static Map<String, String> get headers => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-        if (activeProjectId != null) 'X-Project-ID': activeProjectId!,
-      };
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    if (token != null) 'Authorization': 'Bearer $token',
+    if (activeProjectId != null) 'X-Project-ID': activeProjectId!,
+  };
 
   // Helper untuk menetapkan Project Aktif
   static void setActiveProject(String? projectId) {
@@ -31,7 +36,7 @@ class ApiService {
         headers: headers,
         body: jsonEncode({'email': email, 'password': password}),
       );
-      
+
       print('Status Code: ${response.statusCode}');
       print('Response Body: ${response.body}');
 
@@ -48,7 +53,11 @@ class ApiService {
   }
 
   // 2. Register
-  static Future<Map<String, dynamic>> register(String name, String email, String password) async {
+  static Future<Map<String, dynamic>> register(
+    String name,
+    String email,
+    String password,
+  ) async {
     try {
       print('=== MENCOBA REGISTER ===');
       final response = await http.post(
@@ -66,8 +75,8 @@ class ApiService {
         return {'success': true, 'message': 'Registrasi berhasil'};
       } else {
         return {
-          'success': false, 
-          'message': data['message'] ?? 'Registrasi gagal'
+          'success': false,
+          'message': data['message'] ?? 'Registrasi gagal',
         };
       }
     } catch (e) {
@@ -86,18 +95,30 @@ class ApiService {
       print('🚨 ERROR KONEKSI LOGOUT: $e');
     } finally {
       token = null;
+      currentUserRole = null;
       activeProjectId = null;
     }
   }
 
   // 4. User Profile
   static Future<Map<String, dynamic>?> getUserProfile() async {
+    currentUserRole = null;
     try {
-      final response = await http.get(Uri.parse('$baseUrl/user'), headers: headers);
+      final response = await http.get(
+        Uri.parse('$baseUrl/user'),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final profile = jsonDecode(response.body);
+        currentUserRole = (profile['role'] ?? '').toString();
+        if (isCurrentUserAdmin) {
+          activeProjectId = null;
+        }
+        return profile;
       }
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Gagal mengambil profil');
+      throw Exception(
+        jsonDecode(response.body)['message'] ?? 'Gagal mengambil profil',
+      );
     } catch (e) {
       print('🚨 ERROR KONEKSI USER PROFILE: $e');
       rethrow;
@@ -107,7 +128,10 @@ class ApiService {
   // 4b. Semua User (Admin only)
   static Future<List<dynamic>> getAllUsers() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/admin/users'), headers: headers);
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/users'),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data is List ? data : [];
@@ -138,8 +162,10 @@ class ApiService {
           'email': email,
           'password': password,
           'role': role,
-          if (division != null && division.trim().isNotEmpty) 'division': division,
-          if (position != null && position.trim().isNotEmpty) 'position': position,
+          if (division != null && division.trim().isNotEmpty)
+            'division': division,
+          if (position != null && position.trim().isNotEmpty)
+            'position': position,
           if (phone != null && phone.trim().isNotEmpty) 'phone': phone,
           if (bio != null && bio.trim().isNotEmpty) 'bio': bio,
         }),
@@ -149,7 +175,10 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true, 'data': data};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal membuat user'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal membuat user',
+      };
     } catch (e) {
       print('🚨 ERROR KONEKSI CREATE USER: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
@@ -171,7 +200,8 @@ class ApiService {
       final body = <String, dynamic>{};
       if (name != null && name.trim().isNotEmpty) body['name'] = name;
       if (email != null && email.trim().isNotEmpty) body['email'] = email;
-      if (password != null && password.trim().isNotEmpty) body['password'] = password;
+      if (password != null && password.trim().isNotEmpty)
+        body['password'] = password;
       if (role != null && role.trim().isNotEmpty) body['role'] = role;
       if (division != null) body['division'] = division;
       if (position != null) body['position'] = position;
@@ -188,7 +218,10 @@ class ApiService {
       if (response.statusCode == 200) {
         return {'success': true, 'data': data};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal memperbarui user'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memperbarui user',
+      };
     } catch (e) {
       print('🚨 ERROR KONEKSI UPDATE USER: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
@@ -203,9 +236,15 @@ class ApiService {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'User berhasil dihapus'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'User berhasil dihapus',
+        };
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal menghapus user'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal menghapus user',
+      };
     } catch (e) {
       print('🚨 ERROR KONEKSI DELETE USER: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
@@ -216,8 +255,11 @@ class ApiService {
   static Future<Map<String, dynamic>?> getDashboardSummary() async {
     try {
       print('=== FETCH DASHBOARD SUMMARY (Project: $activeProjectId) ===');
-      final response = await http.get(Uri.parse('$baseUrl/dashboard/summary'), headers: headers);
-      
+      final response = await http.get(
+        Uri.parse('$baseUrl/dashboard/summary'),
+        headers: headers,
+      );
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -232,8 +274,11 @@ class ApiService {
   static Future<List<dynamic>> getTasks() async {
     try {
       print('=== FETCH TASKS (Project: $activeProjectId) ===');
-      final response = await http.get(Uri.parse('$baseUrl/tasks'), headers: headers);
-      
+      final response = await http.get(
+        Uri.parse('$baseUrl/tasks'),
+        headers: headers,
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data is List ? data : [];
@@ -249,8 +294,11 @@ class ApiService {
   static Future<List<dynamic>> getAssets() async {
     try {
       print('=== FETCH ASSETS (Project: $activeProjectId) ===');
-      final response = await http.get(Uri.parse('$baseUrl/assets'), headers: headers);
-      
+      final response = await http.get(
+        Uri.parse('$baseUrl/assets'),
+        headers: headers,
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data is List ? data : [];
@@ -266,8 +314,11 @@ class ApiService {
   static Future<List<dynamic>> getTeamMembers() async {
     try {
       print('=== FETCH TEAM MEMBERS (Project: $activeProjectId) ===');
-      final response = await http.get(Uri.parse('$baseUrl/team/members'), headers: headers);
-      
+      final response = await http.get(
+        Uri.parse('$baseUrl/team/members'),
+        headers: headers,
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data is List ? data : [];
@@ -283,8 +334,11 @@ class ApiService {
   static Future<List<dynamic>> getUserTeams() async {
     try {
       print('=== FETCH USER TEAMS ===');
-      final response = await http.get(Uri.parse('$baseUrl/user/teams'), headers: headers);
-      
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/teams'),
+        headers: headers,
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data is List ? data : [];
@@ -319,14 +373,20 @@ class ApiService {
           'name': name,
           'team_code': teamCode,
           'description': description,
-          if (projectType != null && projectType.trim().isNotEmpty) 'project_type': projectType,
-          if (projectStatus != null && projectStatus.trim().isNotEmpty) 'project_status': projectStatus,
-          if (clientName != null && clientName.trim().isNotEmpty) 'client_name': clientName,
+          if (projectType != null && projectType.trim().isNotEmpty)
+            'project_type': projectType,
+          if (projectStatus != null && projectStatus.trim().isNotEmpty)
+            'project_status': projectStatus,
+          if (clientName != null && clientName.trim().isNotEmpty)
+            'client_name': clientName,
           if (budget != null && budget.trim().isNotEmpty) 'budget': budget,
-          if (startDate != null && startDate.trim().isNotEmpty) 'start_date': startDate,
+          if (startDate != null && startDate.trim().isNotEmpty)
+            'start_date': startDate,
           if (endDate != null && endDate.trim().isNotEmpty) 'end_date': endDate,
-          if (location != null && location.trim().isNotEmpty) 'location': location,
-          if (objective != null && objective.trim().isNotEmpty) 'objective': objective,
+          if (location != null && location.trim().isNotEmpty)
+            'location': location,
+          if (objective != null && objective.trim().isNotEmpty)
+            'objective': objective,
           if (scope != null && scope.trim().isNotEmpty) 'scope': scope,
           if (roles != null) 'roles': roles,
         }),
@@ -335,7 +395,10 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true, 'data': data};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal membuat project'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal membuat project',
+      };
     } catch (e) {
       print('🚨 ERROR KONEKSI CREATE TEAM: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
@@ -352,9 +415,15 @@ class ApiService {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message'] ?? 'Berhasil bergabung ke project!'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Berhasil bergabung ke project!',
+        };
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal bergabung ke project'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal bergabung ke project',
+      };
     } catch (e) {
       print('🚨 ERROR KONEKSI JOIN TEAM: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
