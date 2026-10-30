@@ -17,6 +17,7 @@ class User extends Authenticatable
         'password',
         'role',
         'division',
+        'division_id',
         'position',
         'phone',
         'bio',
@@ -26,6 +27,11 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
+    }
 
     public function teams()
     {

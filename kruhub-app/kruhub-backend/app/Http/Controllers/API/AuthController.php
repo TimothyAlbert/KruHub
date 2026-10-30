@@ -68,7 +68,8 @@ class AuthController extends Controller
     {
         $this->ensureAdmin($request);
 
-        $users = User::select('id', 'name', 'email', 'role', 'division', 'position', 'phone', 'bio', 'created_at')
+        $users = User::with('division')
+            ->select('id', 'name', 'email', 'role', 'division', 'division_id', 'position', 'phone', 'bio', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -85,10 +86,13 @@ class AuthController extends Controller
             'password' => 'required|string|min:6',
             'role' => 'required|string|in:admin,user',
             'division' => 'nullable|string|max:255',
+            'division_id' => 'nullable|exists:divisions,id',
             'position' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:1000',
         ]);
+
+        $divisionId = $this->resolveDivisionId($validated['division'] ?? null, $validated['division_id'] ?? null);
 
         $user = User::create([
             'name' => $validated['name'],
@@ -96,6 +100,7 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'division' => $validated['division'] ?? null,
+            'division_id' => $divisionId,
             'position' => $validated['position'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'bio' => $validated['bio'] ?? null,
@@ -124,6 +129,7 @@ class AuthController extends Controller
             'password' => 'sometimes|string|min:6',
             'role' => 'sometimes|string|in:admin,user',
             'division' => 'nullable|string|max:255',
+            'division_id' => 'nullable|exists:divisions,id',
             'position' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:1000',
@@ -135,13 +141,27 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $divisionId = $this->resolveDivisionId(
+            $validated['division'] ?? $user->division,
+            $validated['division_id'] ?? $user->division_id
+        );
+
         foreach ($validated as $field => $value) {
             if ($field === 'password') {
                 $user->password = Hash::make($value);
                 continue;
             }
 
+            if ($field === 'division' || $field === 'division_id') {
+                continue;
+            }
+
             $user->{$field} = $value;
+        }
+
+        if (array_key_exists('division', $validated) || array_key_exists('division_id', $validated)) {
+            $user->division = $validated['division'] ?? $user->division;
+            $user->division_id = $divisionId;
         }
 
         $user->save();
@@ -188,17 +208,38 @@ class AuthController extends Controller
 
     protected function sanitizeUser(User $user): array
     {
+        $division = $user->relationLoaded('division') ? $user->division : $user->division()->first();
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role,
-            'division' => $user->division,
+            'division_id' => $user->division_id,
+            'division' => $division?->name ?? $user->division,
             'position' => $user->position,
             'phone' => $user->phone,
             'bio' => $user->bio,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
         ];
+    }
+
+    protected function resolveDivisionId(?string $divisionName, ?int $divisionId): ?int
+    {
+        if ($divisionId) {
+            return $divisionId;
+        }
+
+        if (blank($divisionName)) {
+            return null;
+        }
+
+        $division = \App\Models\Division::firstOrCreate(
+            ['name' => trim($divisionName)],
+            ['slug' => strtolower(str_replace(' ', '-', trim($divisionName)))]
+        );
+
+        return $division->id;
     }
 }

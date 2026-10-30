@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         DB::table('assets')->truncate();
         DB::table('tasks')->truncate();
         DB::table('users')->truncate();
+        DB::table('divisions')->truncate();
         DB::table('teams')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
@@ -43,6 +44,46 @@ class DatabaseSeeder extends Seeder
         // ----------------------------------------------------
         $passwordHash = Hash::make('password123');
 
+        $systemAdministrationDivisionId = DB::table('divisions')->insertGetId([
+            'name' => 'System Administration',
+            'slug' => 'system-administration',
+            'description' => 'Tim administrasi sistem dan operasional platform.',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $cameraDivisionId = DB::table('divisions')->insertGetId([
+            'name' => 'Kamera & Sinematografi',
+            'slug' => 'kamera-sinematografi',
+            'description' => 'Divisi sinematografi dan produksi visual.',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $audioDivisionId = DB::table('divisions')->insertGetId([
+            'name' => 'Audio & Tata Suara',
+            'slug' => 'audio-tata-suara',
+            'description' => 'Divisi audio dan post-production suara.',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $lightingDivisionId = DB::table('divisions')->insertGetId([
+            'name' => 'Lighting',
+            'slug' => 'lighting',
+            'description' => 'Divisi pencahayaan dan layout lighting.',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
+        $produserDivisionId = DB::table('divisions')->insertGetId([
+            'name' => 'Produser Exec',
+            'slug' => 'produser-exec',
+            'description' => 'Divisi producer dan eksekutif produksi.',
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
+
         // Backup Admin (akses penuh jika project utama bermasalah)
         $adminUserId = DB::table('users')->insertGetId([
             'team_id' => null,
@@ -51,6 +92,7 @@ class DatabaseSeeder extends Seeder
             'password' => $passwordHash,
             'role' => 'admin',
             'division' => 'System Administration',
+            'division_id' => $systemAdministrationDivisionId,
             'position' => 'Platform Administrator',
             'phone' => '081234567890',
             'bio' => 'Akun backup admin untuk monitoring dan pemulihan proyek jika terjadi kendala operasional.',
@@ -67,6 +109,7 @@ class DatabaseSeeder extends Seeder
             'password' => $passwordHash,
             'role' => 'user',
             'division' => 'Kamera & Sinematografi',
+            'division_id' => $cameraDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
@@ -78,6 +121,7 @@ class DatabaseSeeder extends Seeder
             'password' => $passwordHash,
             'role' => 'user',
             'division' => 'Audio & Tata Suara',
+            'division_id' => $audioDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
@@ -89,6 +133,7 @@ class DatabaseSeeder extends Seeder
             'password' => $passwordHash,
             'role' => 'user',
             'division' => 'Lighting',
+            'division_id' => $lightingDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
@@ -101,6 +146,7 @@ class DatabaseSeeder extends Seeder
             'password' => $passwordHash,
             'role' => 'user',
             'division' => 'Produser Exec',
+            'division_id' => $produserDivisionId,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
         ]);
