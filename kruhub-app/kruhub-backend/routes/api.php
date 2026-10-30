@@ -16,6 +16,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::get('/admin/users', [AuthController::class, 'allUsers']);
+    Route::post('/admin/users', [AuthController::class, 'createUser']);
+    Route::get('/admin/users/{user}', [AuthController::class, 'showUser']);
+    Route::put('/admin/users/{user}', [AuthController::class, 'updateUser']);
+    Route::delete('/admin/users/{user}', [AuthController::class, 'deleteUser']);
 
     // Teams / Projects API
     Route::get('/user/teams', [TeamController::class, 'userTeams']);

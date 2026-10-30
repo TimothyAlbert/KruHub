@@ -119,6 +119,99 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> createUser({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+    String? division,
+    String? position,
+    String? phone,
+    String? bio,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/users'),
+        headers: headers,
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'password': password,
+          'role': role,
+          if (division != null && division.trim().isNotEmpty) 'division': division,
+          if (position != null && position.trim().isNotEmpty) 'position': position,
+          if (phone != null && phone.trim().isNotEmpty) 'phone': phone,
+          if (bio != null && bio.trim().isNotEmpty) 'bio': bio,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal membuat user'};
+    } catch (e) {
+      print('🚨 ERROR KONEKSI CREATE USER: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateUser({
+    required int userId,
+    String? name,
+    String? email,
+    String? password,
+    String? role,
+    String? division,
+    String? position,
+    String? phone,
+    String? bio,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (name != null && name.trim().isNotEmpty) body['name'] = name;
+      if (email != null && email.trim().isNotEmpty) body['email'] = email;
+      if (password != null && password.trim().isNotEmpty) body['password'] = password;
+      if (role != null && role.trim().isNotEmpty) body['role'] = role;
+      if (division != null) body['division'] = division;
+      if (position != null) body['position'] = position;
+      if (phone != null) body['phone'] = phone;
+      if (bio != null) body['bio'] = bio;
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/admin/users/$userId'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal memperbarui user'};
+    } catch (e) {
+      print('🚨 ERROR KONEKSI UPDATE USER: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteUser(int userId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/admin/users/$userId'),
+        headers: headers,
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message'] ?? 'User berhasil dihapus'};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal menghapus user'};
+    } catch (e) {
+      print('🚨 ERROR KONEKSI DELETE USER: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
+    }
+  }
+
   // 5. Dashboard Summary (Mengirim Header X-Project-ID)
   static Future<Map<String, dynamic>?> getDashboardSummary() async {
     try {
