@@ -39,6 +39,11 @@ class Team extends Model
             ->withTimestamps();
     }
 
+    public function divisions()
+    {
+        return $this->hasMany(Division::class, 'team_id');
+    }
+
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
@@ -80,20 +85,56 @@ class Team extends Model
 
     public function isDivisionLead(User $user, ?string $division = null): bool
     {
-        $query = $this->members()
-            ->where('users.id', $user->id)
-            ->wherePivot('role', 'division_lead');
+        $member = $this->members()->where('users.id', $user->id)->first();
 
-        if ($division !== null) {
-            $query = $query->where('users.division', $division);
+        if (!$member || ($member->pivot->role ?? null) !== 'division_lead') {
+            return false;
         }
 
-        return $query->exists();
+        if ($division === null) {
+            return true;
+        }
+
+        $memberDivisionId = $member->pivot?->division_id;
+        if (!$memberDivisionId) {
+            return false;
+        }
+
+        $memberDivision = Division::find($memberDivisionId);
+
+        return strtolower((string) ($memberDivision?->name ?? '')) === strtolower(trim((string) $division));
+    }
+
+    public function getUserDivision(User $user): ?string
+    {
+        $member = $this->members()->where('users.id', $user->id)->first();
+
+        if (!$member || !$member->pivot?->division_id) {
+            return null;
+        }
+
+        return Division::find($member->pivot->division_id)?->name;
     }
 
     public function canManageMembers(User $user): bool
     {
         return $this->isOwner($user) || $this->isProjectLead($user);
+    }
+
+    public function canManageProjectMember(User $actor, User $member): bool
+    {
+        if ($this->canManageMembers($actor)) {
+            return true;
+        }
+
+        if (!$this->isDivisionLead($actor)) {
+            return false;
+        }
+
+        $actorDivisionId = $this->members()->where('users.id', $actor->id)->first()?->pivot?->division_id;
+        $memberDivisionId = $this->members()->where('users.id', $member->id)->first()?->pivot?->division_id;
+
+        return $actorDivisionId !== null && $actorDivisionId === $memberDivisionId;
     }
 
     public function canManageDivision(User $user, ?string $division = null): bool
@@ -119,7 +160,7 @@ class Team extends Model
             return true;
         }
 
-        return ($user->division === $division) || $this->isDivisionLead($user, $division);
+        return (strtolower((string) $this->getUserDivision($user)) === strtolower(trim((string) $division))) || $this->isDivisionLead($user, $division);
     }
 
     public static function generateUniqueTeamCode(): string

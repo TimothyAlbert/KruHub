@@ -17,6 +17,9 @@ class Task extends Model
         'status',
         'deadline_date',
         'created_by',
+        'assignee_id',
+        'approval_status',
+        'approved_by',
     ];
 
     public function team()
@@ -27,5 +30,15 @@ class Task extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

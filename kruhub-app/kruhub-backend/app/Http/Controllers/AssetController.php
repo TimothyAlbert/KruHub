@@ -34,10 +34,11 @@ class AssetController extends Controller
         }
 
         $assets = $query->with(['task', 'approver'])->latest()->get();
+        $userDivision = $team->getUserDivision($request->user());
 
-        if (!$team->canManageMembers($request->user()) && $request->user()->division) {
-            $assets = $assets->filter(function (Asset $asset) use ($request) {
-                return $asset->division === $request->user()->division || $asset->division === 'General';
+        if (!$team->canManageMembers($request->user()) && $userDivision) {
+            $assets = $assets->filter(function (Asset $asset) use ($userDivision) {
+                return $asset->division === $userDivision || $asset->division === 'General';
             })->values();
         }
 
@@ -53,7 +54,9 @@ class AssetController extends Controller
         }
 
         $team = Team::findOrFail($teamId);
-        $isOwnerOrLead = $team->canManageMembers($request->user()) || $team->canManageDivision($request->user(), $request->division ?? $request->user()->division);
+        $requestedDivision = trim((string) ($request->division ?? $team->getUserDivision($request->user()) ?? 'General'));
+        $requestedDivision = $requestedDivision !== '' ? $requestedDivision : 'General';
+        $isOwnerOrLead = $team->canManageMembers($request->user()) || $team->canManageDivision($request->user(), $requestedDivision);
 
         if (!$isOwnerOrLead) {
             return response()->json(['message' => 'Anda tidak memiliki izin menambahkan asset untuk divisi ini.'], 403);
@@ -68,18 +71,20 @@ class AssetController extends Controller
             'approval_status' => 'nullable|in:Pending,Approved,Rejected',
             'related_task_id' => 'nullable|exists:tasks,id',
             'description' => 'nullable|string',
+            'photo_url' => 'nullable|string|max:20000',
         ]);
 
         $asset = Asset::create([
             'team_id' => $teamId,
             'name' => $validated['name'],
             'category' => $validated['category'],
-            'division' => $validated['division'] ?? $request->user()->division ?? 'General',
+            'division' => $validated['division'] ?? $requestedDivision,
             'location' => $validated['location'],
             'status' => $validated['status'] ?? 'Available',
             'approval_status' => $validated['approval_status'] ?? 'Pending',
             'related_task_id' => $validated['related_task_id'] ?? null,
             'description' => $validated['description'] ?? null,
+            'photo_url' => $validated['photo_url'] ?? null,
             'created_by' => $request->user()->id,
         ]);
 
@@ -102,8 +107,9 @@ class AssetController extends Controller
         $teamId = $request->header('X-Project-ID');
         $team = Team::findOrFail($teamId);
         $asset = Asset::where('team_id', $teamId)->findOrFail($id);
+        $userDivision = $team->getUserDivision($request->user());
 
-        if (!$team->canManageMembers($request->user()) && $request->user()->division !== $asset->division) {
+        if (!$team->canManageMembers($request->user()) && $userDivision !== $asset->division) {
             return response()->json(['message' => 'Anda tidak memiliki izin mengubah asset ini.'], 403);
         }
 
@@ -116,6 +122,7 @@ class AssetController extends Controller
             'approval_status' => 'sometimes|in:Pending,Approved,Rejected',
             'related_task_id' => 'sometimes|nullable|exists:tasks,id',
             'description' => 'sometimes|nullable|string',
+            'photo_url' => 'sometimes|nullable|string|max:20000',
         ]);
 
         $asset->update($validated);
@@ -131,8 +138,9 @@ class AssetController extends Controller
         $teamId = $request->header('X-Project-ID');
         $team = Team::findOrFail($teamId);
         $asset = Asset::where('team_id', $teamId)->findOrFail($id);
+        $userDivision = $team->getUserDivision($request->user());
 
-        if (!$team->canManageMembers($request->user()) && $request->user()->division !== $asset->division) {
+        if (!$team->canManageMembers($request->user()) && $userDivision !== $asset->division) {
             return response()->json(['message' => 'Anda tidak memiliki izin menghapus asset ini.'], 403);
         }
 
@@ -145,12 +153,12 @@ class AssetController extends Controller
     {
         $teamId = $request->header('X-Project-ID');
         $team = Team::findOrFail($teamId);
-
-        if (!$team->canManageMembers($request->user())) {
-            return response()->json(['message' => 'Hanya owner / project lead yang bisa menyetujui asset.'], 403);
-        }
-
         $asset = Asset::where('team_id', $teamId)->findOrFail($id);
+        $user = $request->user();
+
+        if (!$team->canManageMembers($user) && !$team->canManageDivision($user, $asset->division)) {
+            return response()->json(['message' => 'Hanya owner, project lead, atau lead divisi terkait yang bisa menyetujui asset.'], 403);
+        }
 
         $validated = $request->validate([
             'approval_status' => 'required|in:Approved,Rejected',
@@ -158,7 +166,7 @@ class AssetController extends Controller
 
         $asset->update([
             'approval_status' => $validated['approval_status'],
-            'approved_by' => $request->user()->id,
+            'approved_by' => $user->id,
         ]);
 
         return response()->json([

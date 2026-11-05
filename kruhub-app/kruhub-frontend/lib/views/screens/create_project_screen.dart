@@ -72,7 +72,6 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
     final res = await ApiService.createTeam(
       name: _nameController.text.trim(),
-      teamCode: '',
       description: _descriptionController.text.trim(),
       projectType: _projectTypeController.text.trim(),
       projectStatus: _statusController.text.trim(),

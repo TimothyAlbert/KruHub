@@ -102,8 +102,10 @@ class TeamController extends Controller
                     }
 
                     $division = \App\Models\Division::firstOrCreate([
+                        'team_id' => $team->id,
                         'name' => trim($request->division),
                     ], [
+                        'team_id' => $team->id,
                         'slug' => strtolower(str_replace(' ', '-', trim($request->division))),
                     ]);
 
@@ -142,8 +144,34 @@ class TeamController extends Controller
             return response()->json([]);
         }
 
-        return response()->json($team->members->map(function (User $user) use ($team) {
+        $currentUser = $request->user();
+        $members = $team->members;
+
+        if ($request->filled('division')) {
+            $members = $members->filter(function (User $user) use ($request) {
+                $pivotDivisionId = $user->pivot?->division_id;
+                $divisionName = $pivotDivisionId ? \App\Models\Division::find($pivotDivisionId)?->name : 'General';
+                return strtolower((string) $divisionName) === strtolower(trim((string) $request->division));
+            })->values();
+        }
+
+        if ($request->filled('role')) {
+            $members = $members->filter(function (User $user) use ($request) {
+                return strtolower((string) ($user->pivot?->role ?? 'member')) === strtolower(trim((string) $request->role));
+            })->values();
+        }
+
+        if ($request->filled('search')) {
+            $search = strtolower(trim((string) $request->search));
+            $members = $members->filter(function (User $user) use ($search) {
+                $fullText = strtolower((string) ($user->name ?? '') . ' ' . (string) ($user->email ?? '') . ' ' . (string) ($user->position ?? ''));
+                return str_contains($fullText, $search);
+            })->values();
+        }
+
+        return response()->json($members->map(function (User $user) use ($team, $currentUser) {
             $pivotDivision = $user->pivot?->division_id ? \App\Models\Division::find($user->pivot->division_id) : null;
+            $canManageThisMember = $team->canManageProjectMember($currentUser, $user);
 
             return [
                 'id' => $user->id,
@@ -155,6 +183,8 @@ class TeamController extends Controller
                 'position' => $user->position,
                 'phone' => $user->phone,
                 'can_manage_members' => $team->canManageMembers($user),
+                'can_manage_this_member' => $canManageThisMember,
+                'can_delete_member' => $canManageThisMember && (int) $currentUser->id !== (int) $user->id,
             ];
         }));
     }
@@ -163,12 +193,12 @@ class TeamController extends Controller
     {
         $teamId = $request->header('X-Project-ID');
         $team = Team::findOrFail($teamId);
+        $currentUser = $request->user();
+        $member = $team->members()->where('users.id', $userId)->firstOrFail();
 
-        if (!$team->canManageMembers($request->user())) {
+        if (!$team->canManageMembers($currentUser) && !$team->canManageProjectMember($currentUser, $member)) {
             return response()->json(['message' => 'Anda tidak memiliki izin untuk mengelola anggota project'], 403);
         }
-
-        $member = $team->members()->where('users.id', $userId)->firstOrFail();
 
         $validated = $request->validate([
             'role' => 'sometimes|in:owner,project_lead,division_lead,member',
@@ -176,6 +206,14 @@ class TeamController extends Controller
             'division_id' => 'sometimes|nullable|exists:divisions,id',
             'position' => 'sometimes|string|max:255',
         ]);
+
+        $actorDivisionId = $team->members()->where('users.id', $currentUser->id)->first()?->pivot?->division_id;
+        if (!$team->canManageMembers($currentUser) && $actorDivisionId !== null) {
+            $targetDivisionId = $member->pivot?->division_id;
+            if ($actorDivisionId !== $targetDivisionId) {
+                return response()->json(['message' => 'Lead divisi hanya dapat mengelola anggota divisinya sendiri.'], 403);
+            }
+        }
 
         $member->pivot->role = $validated['role'] ?? $member->pivot->role;
         $member->position = $validated['position'] ?? $member->position;
@@ -185,8 +223,10 @@ class TeamController extends Controller
 
         if (array_key_exists('division', $validated) && !blank($validated['division'])) {
             $division = \App\Models\Division::firstOrCreate([
+                'team_id' => $team->id,
                 'name' => trim((string) $validated['division']),
             ], [
+                'team_id' => $team->id,
                 'slug' => strtolower(str_replace(' ', '-', trim((string) $validated['division']))),
             ]);
             $pivotDivisionId = $division->id;
@@ -207,12 +247,14 @@ class TeamController extends Controller
     {
         $teamId = $request->header('X-Project-ID');
         $team = Team::findOrFail($teamId);
+        $member = $team->members()->where('users.id', $userId)->firstOrFail();
+        $currentUser = $request->user();
 
-        if (!$team->canManageMembers($request->user())) {
+        if (!$team->canManageMembers($currentUser) && !$team->canManageProjectMember($currentUser, $member)) {
             return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus anggota project'], 403);
         }
 
-        if ((int) $request->user()->id === (int) $userId) {
+        if ((int) $currentUser->id === (int) $userId) {
             return response()->json(['message' => 'Anda tidak dapat menghapus diri sendiri dari project'], 422);
         }
 

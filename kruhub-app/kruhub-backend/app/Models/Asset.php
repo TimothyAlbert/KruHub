@@ -21,6 +21,7 @@ class Asset extends Model
         'approved_by',
         'related_task_id',
         'description',
+        'photo_url',
         'created_by',
     ];
 

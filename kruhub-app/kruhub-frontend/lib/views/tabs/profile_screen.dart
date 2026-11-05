@@ -17,6 +17,10 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _user;
   bool _isLoading = true;
+  final ValueNotifier<bool> _notificationsEnabled = ValueNotifier(true);
+  final ValueNotifier<bool> _keyboardSafeMode = ValueNotifier(true);
+  final ValueNotifier<bool> _locationTracking = ValueNotifier(false);
+  final ValueNotifier<bool> _darkMode = ValueNotifier(true);
 
   @override
   void initState() {
@@ -55,6 +59,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         (route) => false,
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _notificationsEnabled.dispose();
+    _keyboardSafeMode.dispose();
+    _locationTracking.dispose();
+    _darkMode.dispose();
+    super.dispose();
   }
 
   @override
@@ -351,6 +364,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 20),
 
                       const Text(
+                        'Settings',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C1C1E),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildSettingSwitch(
+                              'Notifikasi tugas',
+                              Icons.notifications_active_outlined,
+                              _notificationsEnabled,
+                              onChanged: (value) {
+                                _notificationsEnabled.value = value;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      value
+                                          ? 'Notifikasi diaktifkan'
+                                          : 'Notifikasi dimatikan',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                            ),
+                            const Divider(color: Color(0xFF2C2C2E), height: 1),
+                            _buildSettingSwitch(
+                              'Mode keyboard safe',
+                              Icons.keyboard_alt_outlined,
+                              _keyboardSafeMode,
+                              onChanged: (value) => _keyboardSafeMode.value = value,
+                            ),
+                            const Divider(color: Color(0xFF2C2C2E), height: 1),
+                            _buildSettingSwitch(
+                              'Pelacakan lokasi',
+                              Icons.location_on_outlined,
+                              _locationTracking,
+                              onChanged: (value) => _locationTracking.value = value,
+                            ),
+                            const Divider(color: Color(0xFF2C2C2E), height: 1),
+                            _buildSettingSwitch(
+                              'Tema gelap',
+                              Icons.dark_mode_outlined,
+                              _darkMode,
+                              onChanged: (value) => _darkMode.value = value,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      const Text(
                         'Account Details',
                         style: TextStyle(
                           color: Colors.white,
@@ -425,6 +500,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
       ),
+    );
+  }
+
+  Widget _buildSettingSwitch(
+    String label,
+    IconData icon,
+    ValueNotifier<bool> notifier, {
+    required ValueChanged<bool> onChanged,
+  }) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: notifier,
+      builder: (context, value, child) {
+        return SwitchListTile.adaptive(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          value: value,
+          onChanged: onChanged,
+          title: Row(
+            children: [
+              Icon(icon, color: Colors.white70, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          activeColor: Colors.blueAccent,
+        );
+      },
     );
   }
 

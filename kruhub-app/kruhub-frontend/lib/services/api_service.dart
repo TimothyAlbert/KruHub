@@ -17,14 +17,14 @@ class ApiService {
   static Map<String, String> get headers => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    if (token != null) 'Authorization': 'Bearer $token',
+    if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
     if (activeProjectId != null) 'X-Project-ID': activeProjectId!,
   };
 
   // Helper untuk menetapkan Project Aktif
   static void setActiveProject(String? projectId) {
     activeProjectId = projectId;
-    print('📌 Active Project ID diset ke: $activeProjectId');
+    print('ðŸ“Œ Active Project ID diset ke: $activeProjectId');
   }
 
   // 1. Login
@@ -47,7 +47,7 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      print('🚨 ERROR KONEKSI LOGIN: $e');
+      print('ðŸš¨ ERROR KONEKSI LOGIN: $e');
       return false;
     }
   }
@@ -80,7 +80,7 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('🚨 ERROR KONEKSI REGISTER: $e');
+      print('ðŸš¨ ERROR KONEKSI REGISTER: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
@@ -92,7 +92,7 @@ class ApiService {
         await http.post(Uri.parse('$baseUrl/logout'), headers: headers);
       }
     } catch (e) {
-      print('🚨 ERROR KONEKSI LOGOUT: $e');
+      print('ðŸš¨ ERROR KONEKSI LOGOUT: $e');
     } finally {
       token = null;
       currentUserRole = null;
@@ -120,7 +120,7 @@ class ApiService {
         jsonDecode(response.body)['message'] ?? 'Gagal mengambil profil',
       );
     } catch (e) {
-      print('🚨 ERROR KONEKSI USER PROFILE: $e');
+      print('ðŸš¨ ERROR KONEKSI USER PROFILE: $e');
       rethrow;
     }
   }
@@ -138,7 +138,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('🚨 ERROR KONEKSI GET ALL USERS: $e');
+      print('ðŸš¨ ERROR KONEKSI GET ALL USERS: $e');
       return [];
     }
   }
@@ -180,7 +180,7 @@ class ApiService {
         'message': data['message'] ?? 'Gagal membuat user',
       };
     } catch (e) {
-      print('🚨 ERROR KONEKSI CREATE USER: $e');
+      print('ðŸš¨ ERROR KONEKSI CREATE USER: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
@@ -223,7 +223,7 @@ class ApiService {
         'message': data['message'] ?? 'Gagal memperbarui user',
       };
     } catch (e) {
-      print('🚨 ERROR KONEKSI UPDATE USER: $e');
+      print('ðŸš¨ ERROR KONEKSI UPDATE USER: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
@@ -246,7 +246,70 @@ class ApiService {
         'message': data['message'] ?? 'Gagal menghapus user',
       };
     } catch (e) {
-      print('🚨 ERROR KONEKSI DELETE USER: $e');
+      print('ðŸš¨ ERROR KONEKSI DELETE USER: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
+    }
+  }
+
+  
+  static Future<Map<String, dynamic>> registerDeviceToken(String deviceToken, {String? platform, String? deviceName}) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/notifications/register-device-token"),
+        headers: headers,
+        body: jsonEncode({
+          "device_token": deviceToken,
+          if (platform != null && platform.trim().isNotEmpty) "platform": platform,
+          if (deviceName != null && deviceName.trim().isNotEmpty) "device_name": deviceName,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, "message": data['message'] ?? "Device token berhasil disinkronkan"};
+      }
+      return {'success': false, "message": data['message'] ?? "Gagal menyimpan token perangkat"};
+    } catch (e) {
+      print('?? ERROR KONEKSI REGISTER DEVICE TOKEN: $e');
+      return {'success': false, "message": "Koneksi error: $e"};
+    }
+  }
+static Future<Map<String, dynamic>> createAsset({
+    required String name,
+    required String category,
+    required String location,
+    String? division,
+    String? status,
+    String? description,
+    String? photoDataUrl,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/assets'),
+        headers: headers,
+        body: jsonEncode({
+          'name': name,
+          'category': category,
+          'location': location,
+          if ((division ?? '').trim().isNotEmpty) 'division': division,
+          if ((status ?? '').trim().isNotEmpty) 'status': status,
+          if ((description ?? '').trim().isNotEmpty)
+            'description': description,
+          if ((photoDataUrl ?? '').trim().isNotEmpty)
+            'photo_url': photoDataUrl,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal menambahkan asset',
+      };
+    } catch (e) {
+      print('ðŸš¨ ERROR KONEKSI CREATE ASSET: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
@@ -265,17 +328,30 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      print('🚨 ERROR KONEKSI DASHBOARD: $e');
+      print('ðŸš¨ ERROR KONEKSI DASHBOARD: $e');
       return null;
     }
   }
 
   // 6. Tasks (Filter berdasarkan X-Project-ID)
-  static Future<List<dynamic>> getTasks() async {
+  static Future<List<dynamic>> getTasks({
+    String? division,
+    String? status,
+    String? approvalStatus,
+    String? search,
+  }) async {
     try {
       print('=== FETCH TASKS (Project: $activeProjectId) ===');
+      final queryParams = <String, String>{};
+      if ((division ?? '').trim().isNotEmpty) queryParams['division'] = division!;
+      if ((status ?? '').trim().isNotEmpty) queryParams['status'] = status!;
+      if ((approvalStatus ?? '').trim().isNotEmpty) {
+        queryParams['approval_status'] = approvalStatus!;
+      }
+      if ((search ?? '').trim().isNotEmpty) queryParams['search'] = search!.trim();
+
       final response = await http.get(
-        Uri.parse('$baseUrl/tasks'),
+        Uri.parse('$baseUrl/tasks').replace(queryParameters: queryParams),
         headers: headers,
       );
 
@@ -285,17 +361,49 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('🚨 ERROR KONEKSI TASKS: $e');
+      print('ðŸš¨ ERROR KONEKSI TASKS: $e');
       return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> approveTask(int taskId, String approvalStatus) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/tasks/$taskId/approve'),
+        headers: headers,
+        body: jsonEncode({'approval_status': approvalStatus}),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal mengubah approval task'};
+    } catch (e) {
+      print('ðŸš¨ ERROR KONEKSI APPROVE TASK: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
 
   // 7. Assets (Filter berdasarkan X-Project-ID)
-  static Future<List<dynamic>> getAssets() async {
+  static Future<List<dynamic>> getAssets({
+    String? division,
+    String? status,
+    String? approvalStatus,
+    String? search,
+  }) async {
     try {
       print('=== FETCH ASSETS (Project: $activeProjectId) ===');
+      final queryParams = <String, String>{};
+      if ((division ?? '').trim().isNotEmpty) queryParams['division'] = division!;
+      if ((status ?? '').trim().isNotEmpty) queryParams['status'] = status!;
+      if ((approvalStatus ?? '').trim().isNotEmpty) {
+        queryParams['approval_status'] = approvalStatus!;
+      }
+      if ((search ?? '').trim().isNotEmpty) queryParams['search'] = search!.trim();
+
       final response = await http.get(
-        Uri.parse('$baseUrl/assets'),
+        Uri.parse('$baseUrl/assets').replace(queryParameters: queryParams),
         headers: headers,
       );
 
@@ -305,17 +413,45 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('🚨 ERROR KONEKSI ASSETS: $e');
+      print('ðŸš¨ ERROR KONEKSI ASSETS: $e');
       return [];
     }
   }
 
+  static Future<Map<String, dynamic>> approveAsset(int assetId, String approvalStatus) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/assets/$assetId/approve'),
+        headers: headers,
+        body: jsonEncode({'approval_status': approvalStatus}),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Gagal mengubah approval asset'};
+    } catch (e) {
+      print('ðŸš¨ ERROR KONEKSI APPROVE ASSET: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
+    }
+  }
+
   // 8. Team Members (Filter berdasarkan X-Project-ID)
-  static Future<List<dynamic>> getTeamMembers() async {
+  static Future<List<dynamic>> getTeamMembers({
+    String? division,
+    String? role,
+    String? search,
+  }) async {
     try {
       print('=== FETCH TEAM MEMBERS (Project: $activeProjectId) ===');
+      final queryParams = <String, String>{};
+      if ((division ?? '').trim().isNotEmpty) queryParams['division'] = division!;
+      if ((role ?? '').trim().isNotEmpty) queryParams['role'] = role!;
+      if ((search ?? '').trim().isNotEmpty) queryParams['search'] = search!.trim();
+
       final response = await http.get(
-        Uri.parse('$baseUrl/team/members'),
+        Uri.parse('$baseUrl/team/members').replace(queryParameters: queryParams),
         headers: headers,
       );
 
@@ -325,7 +461,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('🚨 ERROR KONEKSI TEAM MEMBERS: $e');
+      print('ðŸš¨ ERROR KONEKSI TEAM MEMBERS: $e');
       return [];
     }
   }
@@ -348,7 +484,7 @@ class ApiService {
         return data is List ? data : [];
       }
     } catch (e) {
-      print('🚨 ERROR KONEKSI GET USER TEAMS: $e');
+      print('ðŸš¨ ERROR KONEKSI GET USER TEAMS: $e');
     }
     return [];
   }
@@ -356,7 +492,7 @@ class ApiService {
   // 10. Buat Project / Tim Baru
   static Future<Map<String, dynamic>> createTeam({
     required String name,
-    required String teamCode,
+    String? teamCode,
     required String description,
     String? projectType,
     String? projectStatus,
@@ -375,7 +511,6 @@ class ApiService {
         headers: headers,
         body: jsonEncode({
           'name': name,
-          'team_code': teamCode,
           'description': description,
           if (projectType != null && projectType.trim().isNotEmpty)
             'project_type': projectType,
@@ -404,7 +539,7 @@ class ApiService {
         'message': data['message'] ?? 'Gagal membuat project',
       };
     } catch (e) {
-      print('🚨 ERROR KONEKSI CREATE TEAM: $e');
+      print('ðŸš¨ ERROR KONEKSI CREATE TEAM: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
@@ -429,8 +564,10 @@ class ApiService {
         'message': data['message'] ?? 'Gagal bergabung ke project',
       };
     } catch (e) {
-      print('🚨 ERROR KONEKSI JOIN TEAM: $e');
+      print('ðŸš¨ ERROR KONEKSI JOIN TEAM: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
 }
+
+

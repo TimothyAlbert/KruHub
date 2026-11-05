@@ -12,10 +12,19 @@ return new class extends Migration
         if (!Schema::hasTable('divisions')) {
             Schema::create('divisions', function (Blueprint $table) {
                 $table->id();
-                $table->string('name')->unique();
-                $table->string('slug')->unique();
+                $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
+                $table->string('name');
+                $table->string('slug');
                 $table->text('description')->nullable();
                 $table->timestamps();
+                $table->unique(['team_id', 'name']);
+                $table->unique(['team_id', 'slug']);
+            });
+        } elseif (!Schema::hasColumn('divisions', 'team_id')) {
+            Schema::table('divisions', function (Blueprint $table) {
+                $table->foreignId('team_id')->nullable()->after('id')->constrained('teams')->nullOnDelete();
+                $table->unique(['team_id', 'name']);
+                $table->unique(['team_id', 'slug']);
             });
         }
 

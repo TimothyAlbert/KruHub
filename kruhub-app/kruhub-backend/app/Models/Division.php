@@ -10,10 +10,16 @@ class Division extends Model
     use HasFactory;
 
     protected $fillable = [
+        'team_id',
         'name',
         'slug',
         'description',
     ];
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }
 
     public function users()
     {

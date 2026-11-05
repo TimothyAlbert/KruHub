@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import '../../services/project_state.dart';
 
@@ -12,6 +16,7 @@ class AssetsScreen extends StatefulWidget {
 class _AssetsScreenState extends State<AssetsScreen> {
   List<dynamic> _assets = [];
   bool _isLoading = true;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -56,6 +61,200 @@ class _AssetsScreenState extends State<AssetsScreen> {
     }
   }
 
+  Future<void> _pickAssetImage({
+    required ImageSource source,
+    required void Function(String dataUrl) onSelected,
+  }) async {
+    final image = await _picker.pickImage(
+      source: source,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (image == null) return;
+
+    final bytes = await File(image.path).readAsBytes();
+    final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+
+    onSelected(dataUrl);
+  }
+
+  Future<void> _showAddAssetDialog({String? initialPhotoDataUrl}) async {
+    final nameController = TextEditingController();
+    final categoryController = TextEditingController();
+    final locationController = TextEditingController();
+    final divisionController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String status = 'Available';
+    String? photoDataUrl = initialPhotoDataUrl;
+
+    final shouldSubmit = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1C1C1E),
+              title: const Text('Tambah Asset Baru', style: TextStyle(color: Colors.white)),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: 420,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (photoDataUrl != null && photoDataUrl!.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.memory(
+                            base64Decode(photoDataUrl!.split(',').last),
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      else
+                        Container(
+                          height: 120,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2C2C2E),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 42),
+                        ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _pickAssetImage(
+                                source: ImageSource.camera,
+                                onSelected: (dataUrl) {
+                                  setDialogState(() => photoDataUrl = dataUrl);
+                                },
+                              ),
+                              icon: const Icon(Icons.camera_alt_outlined),
+                              label: const Text('Kamera'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _pickAssetImage(
+                                source: ImageSource.gallery,
+                                onSelected: (dataUrl) {
+                                  setDialogState(() => photoDataUrl = dataUrl);
+                                },
+                              ),
+                              icon: const Icon(Icons.photo_library_outlined),
+                              label: const Text('Galeri'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: nameController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Nama Asset', labelStyle: TextStyle(color: Colors.grey)),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: categoryController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Kategori', labelStyle: TextStyle(color: Colors.grey)),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: locationController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Lokasi', labelStyle: TextStyle(color: Colors.grey)),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: divisionController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Divisi', labelStyle: TextStyle(color: Colors.grey)),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        value: status,
+                        dropdownColor: const Color(0xFF1C1C1E),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Status', labelStyle: TextStyle(color: Colors.grey)),
+                        items: const [
+                          DropdownMenuItem(value: 'Available', child: Text('Available')),
+                          DropdownMenuItem(value: 'In Use', child: Text('In Use')),
+                          DropdownMenuItem(value: 'Maintenance', child: Text('Maintenance')),
+                        ],
+                        onChanged: (value) => setDialogState(() => status = value ?? 'Available'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 3,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Deskripsi', labelStyle: TextStyle(color: Colors.grey)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Simpan Asset'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldSubmit != true) return;
+
+    final name = nameController.text.trim();
+    final category = categoryController.text.trim();
+    final location = locationController.text.trim();
+    final division = divisionController.text.trim();
+    final description = descriptionController.text.trim();
+
+    if (name.isEmpty || category.isEmpty || location.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nama, kategori, dan lokasi wajib diisi.'), backgroundColor: Colors.redAccent),
+        );
+      }
+      return;
+    }
+
+    final result = await ApiService.createAsset(
+      name: name,
+      category: category,
+      location: location,
+      division: division.isEmpty ? 'General' : division,
+      status: status,
+      description: description,
+      photoDataUrl: photoDataUrl,
+    );
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Asset berhasil dibuat.'), backgroundColor: Colors.green),
+      );
+      await _fetchAssets();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? 'Gagal membuat asset'), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String?>(
@@ -75,6 +274,13 @@ class _AssetsScreenState extends State<AssetsScreen> {
 
         return Scaffold(
           backgroundColor: const Color(0xFF0F0F10),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _showAddAssetDialog(),
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            icon: const Icon(Icons.add_a_photo_outlined),
+            label: const Text('Tambah Asset'),
+          ),
           body: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),

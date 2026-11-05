@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserDeviceToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -166,6 +167,46 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'User berhasil dihapus.'
+        ]);
+    }
+
+    public function registerDeviceToken(Request $request)
+    {
+        $validated = $request->validate([
+            'device_token' => ['required', 'string', 'max:2048'],
+            'platform' => ['nullable', 'string', 'max:32'],
+            'device_name' => ['nullable', 'string', 'max:128'],
+        ]);
+
+        $user = $request->user();
+
+        $token = UserDeviceToken::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'device_token' => $validated['device_token'],
+            ],
+            [
+                'platform' => $validated['platform'] ?? null,
+                'device_name' => $validated['device_name'] ?? null,
+                'last_seen_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Device token berhasil disinkronkan.',
+            'device_token' => $token,
+        ]);
+    }
+
+    public function removeDeviceToken(Request $request, string $token)
+    {
+        $deleted = UserDeviceToken::where('user_id', $request->user()->id)
+            ->where('device_token', $token)
+            ->delete();
+
+        return response()->json([
+            'message' => $deleted ? 'Device token berhasil dihapus.' : 'Device token tidak ditemukan.',
+            'deleted' => $deleted > 0,
         ]);
     }
 

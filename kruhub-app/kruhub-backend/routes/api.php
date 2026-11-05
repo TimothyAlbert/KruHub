@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +15,9 @@ Route::post('/register', [AuthController::class, 'register']);
 // Protected Routes (Butuh Sanctum Bearer Token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/notifications/register-device-token', [AuthController::class, 'registerDeviceToken']);
+    Route::delete('/notifications/device-token/{token}', [AuthController::class, 'removeDeviceToken']);
+    Route::post('/notifications/send', [NotificationController::class, 'send']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::get('/admin/users', [AuthController::class, 'allUsers']);
     Route::post('/admin/users', [AuthController::class, 'createUser']);
@@ -34,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Tasks API
     Route::apiResource('tasks', TaskController::class);
+    Route::patch('/tasks/{id}/approve', [TaskController::class, 'approve']);
 
     // Assets API
     Route::get('/assets', [AssetController::class, 'index']);

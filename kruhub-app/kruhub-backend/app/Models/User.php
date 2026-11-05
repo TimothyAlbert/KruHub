@@ -50,6 +50,11 @@ class User extends Authenticatable
         return $this->hasMany(Team::class, 'owner_id');
     }
 
+    public function deviceTokens()
+    {
+        return $this->hasMany(UserDeviceToken::class);
+    }
+
     public function isProjectOwner(?Team $team = null): bool
     {
         if ($team === null) {

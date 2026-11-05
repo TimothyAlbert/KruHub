@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../services/push_notification_service.dart';
 import '../admin_shell_screen.dart';
 import '../main_layout.dart';
 import 'sign_up_screen.dart';
@@ -58,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final profile = await ApiService.getUserProfile();
+      await PushNotificationService.registerCurrentDevice();
 
       if (!mounted) return;
 
