@@ -10,6 +10,71 @@ use Illuminate\Support\Str;
 
 class TeamController extends Controller
 {
+    public function show(Request $request, ?Team $team = null)
+    {
+        $teamId = $request->header('X-Project-ID') ?? $request->query('team_id') ?? $request->query('project_id');
+
+        if (!$teamId && $team) {
+            $teamId = $team->id;
+        }
+
+        $team = $team ?? Team::with(['owner', 'members', 'divisions'])->find($teamId);
+
+        if (!$team) {
+            return response()->json(['message' => 'Project tidak ditemukan.'], 404);
+        }
+
+        $user = $request->user();
+        if (!$team->members()->where('users.id', $user->id)->exists()) {
+            return response()->json(['message' => 'Anda tidak memiliki akses ke project ini.'], 403);
+        }
+
+        return response()->json($team->load(['owner', 'members', 'divisions']));
+    }
+
+    public function update(Request $request, ?Team $team = null)
+    {
+        $teamId = $request->header('X-Project-ID') ?? $request->query('team_id') ?? $request->query('project_id');
+
+        if (!$teamId && $team) {
+            $teamId = $team->id;
+        }
+
+        $team = $team ?? Team::find($teamId);
+
+        if (!$team) {
+            return response()->json(['message' => 'Project tidak ditemukan.'], 404);
+        }
+
+        $currentUser = $request->user();
+        if (!$team->canManageMembers($currentUser)) {
+            return response()->json(['message' => 'Anda tidak memiliki izin mengubah setting project.'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'team_code' => 'sometimes|string|max:50|unique:teams,team_code,' . $team->id,
+            'description' => 'sometimes|nullable|string',
+            'project_type' => 'sometimes|nullable|string|max:255',
+            'project_status' => 'sometimes|nullable|string|max:255',
+            'client_name' => 'sometimes|nullable|string|max:255',
+            'budget' => 'sometimes|nullable|string|max:255',
+            'start_date' => 'sometimes|nullable|date',
+            'end_date' => 'sometimes|nullable|date|after_or_equal:start_date',
+            'location' => 'sometimes|nullable|string|max:255',
+            'objective' => 'sometimes|nullable|string',
+            'scope' => 'sometimes|nullable|string',
+        ]);
+
+        $team->fill($validated);
+        $team->save();
+
+        return response()->json([
+            'message' => 'Setting project berhasil diperbarui.',
+            'data' => $team->fresh(['owner', 'members', 'divisions']),
+        ]);
+    }
+
     public function store(Request $request)
     {
         try {

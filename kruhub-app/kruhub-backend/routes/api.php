@@ -28,6 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Teams / Projects API
     Route::get('/user/teams', [TeamController::class, 'userTeams']);
     Route::post('/teams', [TeamController::class, 'store']);
+    Route::get('/team', [TeamController::class, 'show']);
+    Route::put('/team', [TeamController::class, 'update']);
+    Route::get('/teams/{team}', [TeamController::class, 'show']);
+    Route::put('/teams/{team}', [TeamController::class, 'update']);
     Route::post('/teams/join', [TeamController::class, 'join']);
     Route::get('/team/members', [TeamController::class, 'members']);
     Route::put('/team/members/{userId}', [TeamController::class, 'updateMember']);

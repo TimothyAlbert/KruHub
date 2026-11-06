@@ -73,9 +73,11 @@ class TaskController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki izin menambahkan task di divisi ini.'], 403);
         }
 
+        $request->merge(['division' => $division]);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'division' => 'required|string',
+            'division' => 'nullable|string|max:255',
             'status' => 'nullable|in:In Progress,Review,Blocked,Completed',
             'deadline_date' => 'nullable|date',
             'assignee_id' => 'nullable|exists:users,id',
