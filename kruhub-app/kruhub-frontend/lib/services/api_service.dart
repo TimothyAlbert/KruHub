@@ -8,6 +8,7 @@ class ApiService {
   // Storage Global State
   static String? token;
   static String? currentUserRole;
+  static int? currentUserId;
   static String? activeProjectId;
 
   static bool get isCurrentUserAdmin =>
@@ -103,6 +104,7 @@ class ApiService {
   // 4. User Profile
   static Future<Map<String, dynamic>?> getUserProfile() async {
     currentUserRole = null;
+    currentUserId = null;
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/user'),
@@ -111,6 +113,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final profile = jsonDecode(response.body);
         currentUserRole = (profile['role'] ?? '').toString();
+        currentUserId = profile['id'] is int
+            ? profile['id'] as int
+            : int.tryParse(profile['id']?.toString() ?? '');
         if (isCurrentUserAdmin) {
           activeProjectId = null;
         }

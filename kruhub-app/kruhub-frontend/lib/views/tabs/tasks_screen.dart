@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
 import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/project_state.dart';
@@ -13,6 +14,7 @@ class TasksScreen extends StatefulWidget {
 class _TasksScreenState extends State<TasksScreen> {
   List<dynamic> _tasks = [];
   bool _isLoading = true;
+  bool _canCreateTask = false;
   String? _selectedDivision;
   String? _selectedStatus;
   String? _selectedApprovalStatus;
@@ -26,8 +28,17 @@ class _TasksScreenState extends State<TasksScreen> {
     'Operations',
     'Product',
   ];
-  final List<String> _statusOptions = const ['In Progress', 'Review', 'Blocked', 'Completed'];
-  final List<String> _approvalOptions = const ['Pending', 'Approved', 'Rejected'];
+  final List<String> _statusOptions = const [
+    'In Progress',
+    'Review',
+    'Blocked',
+    'Completed',
+  ];
+  final List<String> _approvalOptions = const [
+    'Pending',
+    'Approved',
+    'Rejected',
+  ];
 
   @override
   void initState() {
@@ -46,7 +57,12 @@ class _TasksScreenState extends State<TasksScreen> {
 
   Future<void> _fetchTasks() async {
     if (ApiService.activeProjectId == null) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _canCreateTask = false;
+        });
+      }
       return;
     }
 
@@ -59,9 +75,33 @@ class _TasksScreenState extends State<TasksScreen> {
         approvalStatus: _selectedApprovalStatus,
         search: _searchQuery,
       );
+      final members = await ApiService.getTeamMembers();
+      final selfMember = <dynamic>[];
+
+      for (final member in members) {
+        final memberId = member['id'] ?? member['user_id'];
+        if (memberId != null &&
+            memberId.toString() == ApiService.currentUserId.toString()) {
+          selfMember.add(member);
+        }
+      }
+
+      final member = selfMember.isNotEmpty ? selfMember.first : null;
+      final role = (member?['role'] ?? member?['pivot']?['role'] ?? 'member')
+          .toString()
+          .toLowerCase();
+      final canManage =
+          member?['can_manage_members'] == true ||
+          member?['can_manage_this_member'] == true;
+
       if (mounted) {
         setState(() {
           _tasks = tasks;
+          _canCreateTask =
+              role == 'owner' ||
+              role == 'project_lead' ||
+              role == 'division_lead' ||
+              canManage;
           _isLoading = false;
         });
       }
@@ -69,9 +109,155 @@ class _TasksScreenState extends State<TasksScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat tugas: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Gagal memuat tugas: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
+    }
+  }
+
+  Future<void> _openCreateTaskSheet() async {
+    final formKey = GlobalKey<FormState>();
+    final titleController = TextEditingController();
+    final divisionController = TextEditingController(text: 'General');
+    final statusController = TextEditingController(text: 'In Progress');
+    final deadlineController = TextEditingController();
+    final assigneeController = TextEditingController();
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1B1B1D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        bool isSaving = false;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> submit() async {
+              if (!formKey.currentState!.validate()) return;
+
+              setSheetState(() => isSaving = true);
+
+              final response = await ApiService.createTask(
+                title: titleController.text.trim(),
+                division: divisionController.text.trim().isNotEmpty
+                    ? divisionController.text.trim()
+                    : 'General',
+                status: statusController.text.trim(),
+                deadlineDate: deadlineController.text.trim().isNotEmpty
+                    ? deadlineController.text.trim()
+                    : null,
+                assigneeId: assigneeController.text.trim().isNotEmpty
+                    ? int.tryParse(assigneeController.text.trim())
+                    : null,
+              );
+
+              if (!mounted) return;
+              setSheetState(() => isSaving = false);
+
+              if (response['success'] == true) {
+                if (context.mounted) Navigator.pop(context, true);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tugas berhasil dibuat'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                await _fetchTasks();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(response['message'] ?? 'Gagal membuat tugas'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            }
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                20,
+                16,
+                MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Tambah Tugas',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTextField(
+                        'Judul Tugas',
+                        titleController,
+                        required: true,
+                      ),
+                      _buildTextField('Divisi', divisionController),
+                      _buildTextField('Status', statusController),
+                      _buildTextField(
+                        'Deadline (YYYY-MM-DD)',
+                        deadlineController,
+                      ),
+                      _buildTextField('Assignee ID', assigneeController),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: isSaving ? null : submit,
+                          icon: isSaving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.add_task_rounded),
+                          label: Text(isSaving ? 'Menyimpan...' : 'Buat Tugas'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2C2C2E),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (result == true) {
+      await _fetchTasks();
     }
   }
 
@@ -105,7 +291,14 @@ class _TasksScreenState extends State<TasksScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Filter Tugas', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Filter Tugas',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.close, color: Colors.white),
@@ -127,28 +320,44 @@ class _TasksScreenState extends State<TasksScreen> {
                     value: tempDivision,
                     dropdownColor: const Color(0xFF1B1B1D),
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Divisi', labelStyle: TextStyle(color: Colors.grey)),
+                    decoration: const InputDecoration(
+                      labelText: 'Divisi',
+                      labelStyle: TextStyle(color: Colors.grey),
+                    ),
                     items: ['Semua Divisi', ..._divisionOptions]
-                        .map((value) => DropdownMenuItem<String>(
-                              value: value == 'Semua Divisi' ? null : value,
-                              child: Text(value == 'Semua Divisi' ? 'Semua Divisi' : value),
-                            ))
+                        .map(
+                          (value) => DropdownMenuItem<String>(
+                            value: value == 'Semua Divisi' ? null : value,
+                            child: Text(
+                              value == 'Semua Divisi' ? 'Semua Divisi' : value,
+                            ),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => setSheetState(() => tempDivision = value),
+                    onChanged: (value) =>
+                        setSheetState(() => tempDivision = value),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: tempStatus,
                     dropdownColor: const Color(0xFF1B1B1D),
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Status', labelStyle: TextStyle(color: Colors.grey)),
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      labelStyle: TextStyle(color: Colors.grey),
+                    ),
                     items: ['Semua Status', ..._statusOptions]
-                        .map((value) => DropdownMenuItem<String>(
-                              value: value == 'Semua Status' ? null : value,
-                              child: Text(value == 'Semua Status' ? 'Semua Status' : value),
-                            ))
+                        .map(
+                          (value) => DropdownMenuItem<String>(
+                            value: value == 'Semua Status' ? null : value,
+                            child: Text(
+                              value == 'Semua Status' ? 'Semua Status' : value,
+                            ),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => setSheetState(() => tempStatus = value),
+                    onChanged: (value) =>
+                        setSheetState(() => tempStatus = value),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -160,12 +369,19 @@ class _TasksScreenState extends State<TasksScreen> {
                       labelStyle: TextStyle(color: Colors.grey),
                     ),
                     items: ['Semua Approval', ..._approvalOptions]
-                        .map((value) => DropdownMenuItem<String>(
-                              value: value == 'Semua Approval' ? null : value,
-                              child: Text(value == 'Semua Approval' ? 'Semua Approval' : value),
-                            ))
+                        .map(
+                          (value) => DropdownMenuItem<String>(
+                            value: value == 'Semua Approval' ? null : value,
+                            child: Text(
+                              value == 'Semua Approval'
+                                  ? 'Semua Approval'
+                                  : value,
+                            ),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => setSheetState(() => tempApprovalStatus = value),
+                    onChanged: (value) =>
+                        setSheetState(() => tempApprovalStatus = value),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -220,7 +436,10 @@ class _TasksScreenState extends State<TasksScreen> {
     }
   }
 
-  Future<void> _approveTask(Map<String, dynamic> task, String approvalStatus) async {
+  Future<void> _approveTask(
+    Map<String, dynamic> task,
+    String approvalStatus,
+  ) async {
     final taskId = task['id'];
     if (taskId == null) return;
 
@@ -230,8 +449,12 @@ class _TasksScreenState extends State<TasksScreen> {
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Task ${approvalStatus == 'Approved' ? 'disetujui' : 'ditolak'}.'),
-            backgroundColor: approvalStatus == 'Approved' ? Colors.green : Colors.orange,
+            content: Text(
+              'Task ${approvalStatus == 'Approved' ? 'disetujui' : 'ditolak'}.',
+            ),
+            backgroundColor: approvalStatus == 'Approved'
+                ? Colors.green
+                : Colors.orange,
           ),
         );
         await NotificationService.show(
@@ -241,13 +464,19 @@ class _TasksScreenState extends State<TasksScreen> {
         await _fetchTasks();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? 'Gagal mengubah approval task'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(result['message'] ?? 'Gagal mengubah approval task'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghubungi server: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Gagal menghubungi server: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -258,7 +487,9 @@ class _TasksScreenState extends State<TasksScreen> {
     final status = task['status'] ?? 'In Progress';
     final division = task['division'] ?? 'General';
     final approval = task['approval_status'] ?? 'Pending';
-    final assignee = task['assignee'] is Map ? task['assignee']['name'] ?? 'Belum ditugaskan' : 'Belum ditugaskan';
+    final assignee = task['assignee'] is Map
+        ? task['assignee']['name'] ?? 'Belum ditugaskan'
+        : 'Belum ditugaskan';
 
     showModalBottomSheet(
       context: context,
@@ -276,7 +507,14 @@ class _TasksScreenState extends State<TasksScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Detail Tugas', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Detail Tugas',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close, color: Colors.white),
@@ -284,7 +522,14 @@ class _TasksScreenState extends State<TasksScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Text(title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 12),
             _infoRow('Divisi', division),
             _infoRow('Status', status),
@@ -341,6 +586,15 @@ class _TasksScreenState extends State<TasksScreen> {
 
         return Scaffold(
           backgroundColor: const Color(0xFF0F0F10),
+          floatingActionButton: _canCreateTask
+              ? FloatingActionButton.extended(
+                  onPressed: _openCreateTaskSheet,
+                  backgroundColor: const Color(0xFF2C2C2E),
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.add_task_rounded),
+                  label: const Text('Add Task'),
+                )
+              : null,
           body: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -352,128 +606,282 @@ class _TasksScreenState extends State<TasksScreen> {
                     children: [
                       Row(
                         children: [
-                          const CircleAvatar(radius: 24, backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12')),
+                          const CircleAvatar(
+                            radius: 24,
+                            backgroundImage: NetworkImage(
+                              'https://i.pravatar.cc/150?img=12',
+                            ),
+                          ),
                           const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [
-                              Text('Welcome back', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                              Text(
+                                'Welcome back',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
                               SizedBox(height: 2),
-                              Text('Hello, Timothy 👋', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(
+                                'Hello, Timothy 👋',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ],
                       ),
                       Container(
-                        decoration: const BoxDecoration(color: Color(0xFF1C1C1E), shape: BoxShape.circle),
-                        child: IconButton(icon: const Icon(Icons.notifications_outlined, color: Colors.white), onPressed: () {}),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1C1C1E),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.notifications_outlined,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {},
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(child: _buildMiniStat('${_tasks.length}', 'Active Tasks', Icons.playlist_add_check, const Color(0xFF2C2C2E), Colors.white, Colors.white)),
+                      Expanded(
+                        child: _buildMiniStat(
+                          '${_tasks.length}',
+                          'Active Tasks',
+                          Icons.playlist_add_check,
+                          const Color(0xFF2C2C2E),
+                          Colors.white,
+                          Colors.white,
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildMiniStat('${_tasks.where((t) => t['status'] == 'Review').length}', 'Awaiting Review', Icons.access_time_filled, const Color(0xFFFDE8D0), const Color(0xFFE67E22), const Color(0xFFE67E22))),
+                      Expanded(
+                        child: _buildMiniStat(
+                          '${_tasks.where((t) => t['status'] == 'Review').length}',
+                          'Awaiting Review',
+                          Icons.access_time_filled,
+                          const Color(0xFFFDE8D0),
+                          const Color(0xFFE67E22),
+                          const Color(0xFFE67E22),
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildMiniStat('${_tasks.where((t) => t['status'] == 'Completed').length}', 'Completed', Icons.check_circle, const Color(0xFFD4F4E2), const Color(0xFF2ECC71), const Color(0xFF2ECC71))),
+                      Expanded(
+                        child: _buildMiniStat(
+                          '${_tasks.where((t) => t['status'] == 'Completed').length}',
+                          'Completed',
+                          Icons.check_circle,
+                          const Color(0xFFD4F4E2),
+                          const Color(0xFF2ECC71),
+                          const Color(0xFF2ECC71),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('All Tasks', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'All Tasks',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       TextButton.icon(
                         onPressed: _openFilterSheet,
                         icon: const Icon(Icons.filter_list, color: Colors.grey),
-                        label: const Text('Filter', style: TextStyle(color: Colors.grey)),
+                        label: const Text(
+                          'Filter',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (_selectedDivision != null || _selectedStatus != null || _selectedApprovalStatus != null || _searchQuery.isNotEmpty)
+                  if (_selectedDivision != null ||
+                      _selectedStatus != null ||
+                      _selectedApprovalStatus != null ||
+                      _searchQuery.isNotEmpty)
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        if (_selectedDivision != null) _buildFilterChip('Divisi: $_selectedDivision'),
-                        if (_selectedStatus != null) _buildFilterChip('Status: $_selectedStatus'),
-                        if (_selectedApprovalStatus != null) _buildFilterChip('Approval: $_selectedApprovalStatus'),
-                        if (_searchQuery.isNotEmpty) _buildFilterChip('Cari: $_searchQuery'),
+                        if (_selectedDivision != null)
+                          _buildFilterChip('Divisi: $_selectedDivision'),
+                        if (_selectedStatus != null)
+                          _buildFilterChip('Status: $_selectedStatus'),
+                        if (_selectedApprovalStatus != null)
+                          _buildFilterChip(
+                            'Approval: $_selectedApprovalStatus',
+                          ),
+                        if (_searchQuery.isNotEmpty)
+                          _buildFilterChip('Cari: $_searchQuery'),
                       ],
                     ),
                   const SizedBox(height: 12),
                   Expanded(
                     child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          )
                         : RefreshIndicator(
                             onRefresh: _fetchTasks,
                             color: Colors.white,
                             child: _tasks.isEmpty
                                 ? ListView(
-                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
                                     children: const [
                                       SizedBox(height: 100),
-                                      Center(child: Text('Tidak ada tugas ditemukan di project ini', style: TextStyle(color: Colors.grey))),
+                                      Center(
+                                        child: Text(
+                                          'Tidak ada tugas ditemukan di project ini',
+                                          style: TextStyle(color: Colors.grey),
+                                        ),
+                                      ),
                                     ],
                                   )
                                 : ListView.builder(
-                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
                                     itemCount: _tasks.length,
                                     itemBuilder: (context, index) {
                                       final task = _tasks[index];
                                       final title = task['title'] ?? '';
-                                      final division = task['division'] ?? 'General';
-                                      final status = task['status'] ?? 'In Progress';
-                                      final approval = task['approval_status'] ?? 'Pending';
+                                      final division =
+                                          task['division'] ?? 'General';
+                                      final status =
+                                          task['status'] ?? 'In Progress';
+                                      final approval =
+                                          task['approval_status'] ?? 'Pending';
                                       final date = task['deadline_date'] ?? '-';
 
                                       return GestureDetector(
                                         onTap: () => _showTaskDetail(task),
                                         child: Container(
-                                          margin: const EdgeInsets.only(bottom: 12),
+                                          margin: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
                                           padding: const EdgeInsets.all(16),
-                                          decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(20)),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF1C1C1E),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
                                                 children: [
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                    decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
-                                                    child: Text(division, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 12,
+                                                          vertical: 6,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                        0xFF2C2C2E,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      division,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
                                                   ),
                                                   _buildStatusBadge(status),
                                                 ],
                                               ),
                                               const SizedBox(height: 12),
-                                              Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                              Text(
+                                                title,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
                                               const SizedBox(height: 12),
                                               Row(
                                                 children: [
-                                                  const Icon(Icons.calendar_today_outlined, color: Colors.grey, size: 14),
+                                                  const Icon(
+                                                    Icons
+                                                        .calendar_today_outlined,
+                                                    color: Colors.grey,
+                                                    size: 14,
+                                                  ),
                                                   const SizedBox(width: 6),
-                                                  Text(date, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                                  Text(
+                                                    date,
+                                                    style: const TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
                                               const SizedBox(height: 12),
                                               Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
                                                 children: [
                                                   _buildApprovalBadge(approval),
                                                   Row(
                                                     children: [
                                                       TextButton(
-                                                        onPressed: () => _approveTask(task, 'Rejected'),
-                                                        child: const Text('Tolak', style: TextStyle(color: Colors.orange)),
+                                                        onPressed: () =>
+                                                            _approveTask(
+                                                              task,
+                                                              'Rejected',
+                                                            ),
+                                                        child: const Text(
+                                                          'Tolak',
+                                                          style: TextStyle(
+                                                            color:
+                                                                Colors.orange,
+                                                          ),
+                                                        ),
                                                       ),
                                                       TextButton(
-                                                        onPressed: () => _approveTask(task, 'Approved'),
-                                                        child: const Text('Approve', style: TextStyle(color: Colors.green)),
+                                                        onPressed: () =>
+                                                            _approveTask(
+                                                              task,
+                                                              'Approved',
+                                                            ),
+                                                        child: const Text(
+                                                          'Approve',
+                                                          style: TextStyle(
+                                                            color: Colors.green,
+                                                          ),
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
@@ -496,6 +904,35 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    bool required = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.grey),
+          filled: true,
+          fillColor: const Color(0xFF18181A),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        validator: required
+            ? (value) => (value == null || value.trim().isEmpty)
+                  ? '$label wajib diisi'
+                  : null
+            : null,
+      ),
+    );
+  }
+
   Widget _buildFilterChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -503,26 +940,54 @@ class _TasksScreenState extends State<TasksScreen> {
         color: const Color(0xFF2C2C2E),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+      ),
     );
   }
 
-  Widget _buildMiniStat(String val, String label, IconData icon, Color iconBg, Color iconColor, Color valColor) {
+  Widget _buildMiniStat(
+    String val,
+    String label,
+    IconData icon,
+    Color iconBg,
+    Color iconColor,
+    Color valColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Icon(icon, color: iconColor, size: 16),
           ),
           const SizedBox(height: 8),
-          Text(val, style: TextStyle(color: valColor, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            val,
+            style: TextStyle(
+              color: valColor,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.grey, fontSize: 10),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -545,8 +1010,18 @@ class _TasksScreenState extends State<TasksScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(status, style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: text,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -566,8 +1041,18 @@ class _TasksScreenState extends State<TasksScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
-      child: Text(approval, style: TextStyle(color: text, fontSize: 11, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        approval,
+        style: TextStyle(
+          color: text,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -579,10 +1064,20 @@ class _TasksScreenState extends State<TasksScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
