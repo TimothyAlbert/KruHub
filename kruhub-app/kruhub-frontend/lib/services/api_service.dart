@@ -251,30 +251,42 @@ class ApiService {
     }
   }
 
-  
-  static Future<Map<String, dynamic>> registerDeviceToken(String deviceToken, {String? platform, String? deviceName}) async {
+  static Future<Map<String, dynamic>> registerDeviceToken(
+    String deviceToken, {
+    String? platform,
+    String? deviceName,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/notifications/register-device-token"),
         headers: headers,
         body: jsonEncode({
           "device_token": deviceToken,
-          if (platform != null && platform.trim().isNotEmpty) "platform": platform,
-          if (deviceName != null && deviceName.trim().isNotEmpty) "device_name": deviceName,
+          if (platform != null && platform.trim().isNotEmpty)
+            "platform": platform,
+          if (deviceName != null && deviceName.trim().isNotEmpty)
+            "device_name": deviceName,
         }),
       );
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return {'success': true, "message": data['message'] ?? "Device token berhasil disinkronkan"};
+        return {
+          'success': true,
+          "message": data['message'] ?? "Device token berhasil disinkronkan",
+        };
       }
-      return {'success': false, "message": data['message'] ?? "Gagal menyimpan token perangkat"};
+      return {
+        'success': false,
+        "message": data['message'] ?? "Gagal menyimpan token perangkat",
+      };
     } catch (e) {
       print('?? ERROR KONEKSI REGISTER DEVICE TOKEN: $e');
       return {'success': false, "message": "Koneksi error: $e"};
     }
   }
-static Future<Map<String, dynamic>> createAsset({
+
+  static Future<Map<String, dynamic>> createAsset({
     required String name,
     required String category,
     required String location,
@@ -293,10 +305,8 @@ static Future<Map<String, dynamic>> createAsset({
           'location': location,
           if ((division ?? '').trim().isNotEmpty) 'division': division,
           if ((status ?? '').trim().isNotEmpty) 'status': status,
-          if ((description ?? '').trim().isNotEmpty)
-            'description': description,
-          if ((photoDataUrl ?? '').trim().isNotEmpty)
-            'photo_url': photoDataUrl,
+          if ((description ?? '').trim().isNotEmpty) 'description': description,
+          if ((photoDataUrl ?? '').trim().isNotEmpty) 'photo_url': photoDataUrl,
         }),
       );
 
@@ -343,12 +353,14 @@ static Future<Map<String, dynamic>> createAsset({
     try {
       print('=== FETCH TASKS (Project: $activeProjectId) ===');
       final queryParams = <String, String>{};
-      if ((division ?? '').trim().isNotEmpty) queryParams['division'] = division!;
+      if ((division ?? '').trim().isNotEmpty)
+        queryParams['division'] = division!;
       if ((status ?? '').trim().isNotEmpty) queryParams['status'] = status!;
       if ((approvalStatus ?? '').trim().isNotEmpty) {
         queryParams['approval_status'] = approvalStatus!;
       }
-      if ((search ?? '').trim().isNotEmpty) queryParams['search'] = search!.trim();
+      if ((search ?? '').trim().isNotEmpty)
+        queryParams['search'] = search!.trim();
 
       final response = await http.get(
         Uri.parse('$baseUrl/tasks').replace(queryParameters: queryParams),
@@ -366,7 +378,10 @@ static Future<Map<String, dynamic>> createAsset({
     }
   }
 
-  static Future<Map<String, dynamic>> approveTask(int taskId, String approvalStatus) async {
+  static Future<Map<String, dynamic>> approveTask(
+    int taskId,
+    String approvalStatus,
+  ) async {
     try {
       final response = await http.patch(
         Uri.parse('$baseUrl/tasks/$taskId/approve'),
@@ -378,7 +393,10 @@ static Future<Map<String, dynamic>> createAsset({
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {'success': true, 'data': data};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal mengubah approval task'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal mengubah approval task',
+      };
     } catch (e) {
       print('ðŸš¨ ERROR KONEKSI APPROVE TASK: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
@@ -395,12 +413,14 @@ static Future<Map<String, dynamic>> createAsset({
     try {
       print('=== FETCH ASSETS (Project: $activeProjectId) ===');
       final queryParams = <String, String>{};
-      if ((division ?? '').trim().isNotEmpty) queryParams['division'] = division!;
+      if ((division ?? '').trim().isNotEmpty)
+        queryParams['division'] = division!;
       if ((status ?? '').trim().isNotEmpty) queryParams['status'] = status!;
       if ((approvalStatus ?? '').trim().isNotEmpty) {
         queryParams['approval_status'] = approvalStatus!;
       }
-      if ((search ?? '').trim().isNotEmpty) queryParams['search'] = search!.trim();
+      if ((search ?? '').trim().isNotEmpty)
+        queryParams['search'] = search!.trim();
 
       final response = await http.get(
         Uri.parse('$baseUrl/assets').replace(queryParameters: queryParams),
@@ -418,7 +438,10 @@ static Future<Map<String, dynamic>> createAsset({
     }
   }
 
-  static Future<Map<String, dynamic>> approveAsset(int assetId, String approvalStatus) async {
+  static Future<Map<String, dynamic>> approveAsset(
+    int assetId,
+    String approvalStatus,
+  ) async {
     try {
       final response = await http.patch(
         Uri.parse('$baseUrl/assets/$assetId/approve'),
@@ -430,7 +453,10 @@ static Future<Map<String, dynamic>> createAsset({
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {'success': true, 'data': data};
       }
-      return {'success': false, 'message': data['message'] ?? 'Gagal mengubah approval asset'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal mengubah approval asset',
+      };
     } catch (e) {
       print('ðŸš¨ ERROR KONEKSI APPROVE ASSET: $e');
       return {'success': false, 'message': 'Koneksi error: $e'};
@@ -446,12 +472,15 @@ static Future<Map<String, dynamic>> createAsset({
     try {
       print('=== FETCH TEAM MEMBERS (Project: $activeProjectId) ===');
       final queryParams = <String, String>{};
-      if ((division ?? '').trim().isNotEmpty) queryParams['division'] = division!;
+      if ((division ?? '').trim().isNotEmpty)
+        queryParams['division'] = division!;
       if ((role ?? '').trim().isNotEmpty) queryParams['role'] = role!;
-      if ((search ?? '').trim().isNotEmpty) queryParams['search'] = search!.trim();
+      if ((search ?? '').trim().isNotEmpty)
+        queryParams['search'] = search!.trim();
 
       final response = await http.get(
-        Uri.parse('$baseUrl/team/members').replace(queryParameters: queryParams),
+        Uri.parse('$baseUrl/team/members')
+            .replace(queryParameters: queryParams),
         headers: headers,
       );
 
@@ -463,6 +492,131 @@ static Future<Map<String, dynamic>> createAsset({
     } catch (e) {
       print('ðŸš¨ ERROR KONEKSI TEAM MEMBERS: $e');
       return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> getTeamDetails() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/team'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) return data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+        return {};
+      }
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal mengambil detail project',
+      };
+    } catch (e) {
+      print('ðŸš¨ ERROR KONEKSI GET TEAM DETAILS: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateTeam({
+    String? name,
+    String? description,
+    String? projectType,
+    String? projectStatus,
+    String? clientName,
+    String? budget,
+    String? startDate,
+    String? endDate,
+    String? location,
+    String? objective,
+    String? scope,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if ((name ?? '').trim().isNotEmpty) body['name'] = name!.trim();
+      if ((description ?? '').trim().isNotEmpty) {
+        body['description'] = description!.trim();
+      } else {
+        body['description'] = '';
+      }
+      if ((projectType ?? '').trim().isNotEmpty) {
+        body['project_type'] = projectType!.trim();
+      }
+      if ((projectStatus ?? '').trim().isNotEmpty) {
+        body['project_status'] = projectStatus!.trim();
+      }
+      if ((clientName ?? '').trim().isNotEmpty) {
+        body['client_name'] = clientName!.trim();
+      }
+      if ((budget ?? '').trim().isNotEmpty) body['budget'] = budget!.trim();
+      if ((startDate ?? '').trim().isNotEmpty)
+        body['start_date'] = startDate!.trim();
+      if ((endDate ?? '').trim().isNotEmpty) body['end_date'] = endDate!.trim();
+      if ((location ?? '').trim().isNotEmpty)
+        body['location'] = location!.trim();
+      if ((objective ?? '').trim().isNotEmpty)
+        body['objective'] = objective!.trim();
+      if ((scope ?? '').trim().isNotEmpty) body['scope'] = scope!.trim();
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/team'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memperbarui project',
+      };
+    } catch (e) {
+      print('ðŸš¨ ERROR KONEKSI UPDATE TEAM: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> createTask({
+    required String title,
+    String? division,
+    String? status,
+    String? deadlineDate,
+    int? assigneeId,
+    String? approvalStatus,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'title': title,
+        if ((division ?? '').trim().isNotEmpty) 'division': division!.trim(),
+        if ((status ?? '').trim().isNotEmpty) 'status': status!.trim(),
+        if ((deadlineDate ?? '').trim().isNotEmpty)
+          'deadline_date': deadlineDate!.trim(),
+        if (assigneeId != null) 'assignee_id': assigneeId,
+        if ((approvalStatus ?? '').trim().isNotEmpty)
+          'approval_status': approvalStatus!.trim(),
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/tasks'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {'success': true, 'data': data['data'] ?? data};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal menambahkan tugas',
+      };
+    } catch (e) {
+      print('ðŸš¨ ERROR KONEKSI CREATE TASK: $e');
+      return {'success': false, 'message': 'Koneksi error: $e'};
     }
   }
 
@@ -569,5 +723,3 @@ static Future<Map<String, dynamic>> createAsset({
     }
   }
 }
-
-
