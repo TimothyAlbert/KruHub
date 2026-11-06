@@ -24,7 +24,7 @@ return new class extends Migration
 
         Schema::table('assets', function (Blueprint $table) {
             if (!Schema::hasColumn('assets', 'photo_url')) {
-                $table->text('photo_url')->nullable()->after('description');
+                $table->text('photo_url')->nullable();
             }
         });
 
